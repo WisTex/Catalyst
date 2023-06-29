@@ -5,7 +5,7 @@ Just some notes for myself.
 ## Branches
 * Catalyst - Main release branch of WisTex Catalyst
 * WisTex - Development branch for WisTex
-* Dev - Development branch of upstream (Streams repository) - NOT the dev of WisTex Catalyst
+* Dev - Development branch of upstream (Streams repository) - NOT the dev branch of WisTex Catalyst
 * Release - Release branch of upstream (Streams repository) - NOT the release of WisTex Catalyst
 
 ## Upstream Git
@@ -27,3 +27,5 @@ To do this, the local computer has to pull from upstream, and then update the or
     $ git rebase upstream/release
 
 https://stackoverflow.com/questions/3903817/pull-new-updates-from-original-github-repository-into-forked-github-repository/3903835#3903835
+
+And then we create a pull request to merge it into the catalsyst branch, which is our release branch.
