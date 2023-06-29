@@ -45,12 +45,13 @@ class ActivityStreams
      * @param null $hub
      * @param null $client
      */
-    public function __construct(mixed $string, $hub = null, $client = null)
+    public function __construct(mixed $string, $hub = null, $client = null, $portable_id = null)
     {
 
         $this->raw = $string;
         $this->hub = $hub;
         $this->client = $client;
+        $this->portable_id = $portable_id;
 
         if (is_array($string)) {
             $this->data = $string;
@@ -337,15 +338,20 @@ class ActivityStreams
 
     public function fetch_property(string $url, array $channel = null): mixed
     {
-        $x = Activity::fetch($url, $channel);
-        if ($x === null && strpos($url, '/channel/')) {
-            // look for other nomadic channels which might be alive
-            $zf = Zotfinger::exec($url, $channel);
-
-            $url = $zf['signature']['signer'];
-            $x = Activity::fetch($url, $channel);
+        if (str_starts_with($url, z_root() . '/item/')) {
+            $x = Activity::fetch_local($url, $this->portable_id ?? '');
+    logger('local: ' . print_r($x,true));
         }
+        if (!$x) {
+            $x = Activity::fetch($url, $channel);
+            if ($x === null && strpos($url, '/channel/')) {
+                // look for other nomadic channels which might be alive
+                $zf = Zotfinger::exec($url, $channel);
 
+                $url = $zf['signature']['signer'];
+                $x = Activity::fetch($url, $channel);
+            }
+        }
         return $x;
     }
 
@@ -508,13 +514,20 @@ class ActivityStreams
 
     public static function is_as_request() : bool
     {
-        $x = getBestSupportedMimeType([
-            'application/ld+json;profile="https://www.w3.org/ns/activitystreams"',
-            'application/activity+json',
-            'application/ld+json;profile="http://www.w3.org/ns/activitystreams"',
-            'application/ld+json',
-            'application/x-zot-activity+json'
-        ]);
+        $default_accept_header = 'application/activity+json, application/x-zot-activity+json, application/ld+json; profile="https://www.w3.org/ns/activitystreams"';
+        $accept_header = Config::Get('system', 'accept_header', $default_accept_header);
+
+        $x = getBestSupportedMimeType(explode(',', $accept_header));
+
+        if (! $x) {
+            $x = getBestSupportedMimeType([
+                'application/ld+json;profile="https://www.w3.org/ns/activitystreams"',
+                'application/activity+json',
+                'application/ld+json;profile="http://www.w3.org/ns/activitystreams"',
+                'application/ld+json',
+                'application/x-zot-activity+json'
+            ]);
+        }
 
         return (bool)$x;
     }

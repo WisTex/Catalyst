@@ -53,16 +53,18 @@
                         {{$autoperms}}
                         {{$anymention}}
                         {{include file="field_select.tpl" field=$comment_perms}}
+                        {{include file="field_select.tpl" field=$permit_moderated_comments}}
                         {{include file="field_input.tpl" field=$close_comments}}
                         {{include file="field_select.tpl" field=$mail_perms}}
                         {{include file="field_select.tpl" field=$view_contact_perms}}
                         {{include file="field_select.tpl" field=$search_perms}}
+                        {{include file="field_checkbox.tpl" field=$permit_all_likes}}
                         {{include file="field_checkbox.tpl" field=$permit_all_mentions}}
                         {{include file="field_input.tpl" field=$unless_mention_count}}
                         {{include file="field_input.tpl" field=$followed_tags}}
                         {{include file="field_input.tpl" field=$unless_tag_count}}
                         {{include file="field_checkbox.tpl" field=$preview_outbox}}
-
+                        {{include file="field_checkbox.tpl" field=$nomadic_ids_in_profile}}
                         <div id="advanced-perm" style="display:{{if $permissions_set}}none{{else}}block{{/if}};">
                             <div class="form-group">
                                 <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#apsModal">{{$lbl_p2macro}}</button>
@@ -72,7 +74,7 @@
                                     <div class="modal-content">
                                         <div class="modal-header">
                                             <h4 class="modal-title">{{$lbl_p2macro}}</h4>
-                                            <button type="button" class="close" data-bs-dismiss="modal" aria-label="{{$close}}"><span aria-hidden="true">&times;</span></button>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body">
                                             {{foreach $permiss_arr as $permit}}
@@ -172,7 +174,7 @@
                                     {{include file="field_intcheckbox.tpl" field=$vnotify13}}
                                 {{/if}}
                                 {{include file="field_intcheckbox.tpl" field=$vnotify14}}
-                                {{include file="field_intcheckbox.tpl" field=$vnotify15}}
+                                {{*include file="field_intcheckbox.tpl" field=$vnotify15*}}
                                 {{include file="field_intcheckbox.tpl" field=$vnotify17}}
                                 {{if $vnotify16}}
                                     {{include file="field_intcheckbox.tpl" field=$vnotify16}}

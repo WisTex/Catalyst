@@ -126,7 +126,8 @@ class Libzot
 
         if ($msg) {
             $actor = Channel::url($channel);
-            if ($encoding === 'activitystreams' && array_key_exists('actor', $msg) && is_string($msg['actor']) && $actor === $msg['actor']) {
+            $actors = get_hubloc_id_urls_by_portable_id($channel['channel_hash']);
+            if ($encoding === 'activitystreams' && array_key_exists('actor', $msg) && in_array($msg['actor'], $actors)) {
                 $msg = JSalmon::sign($msg, $actor, $channel['channel_prvkey']);
             }
             $data['data'] = $msg;
@@ -1196,7 +1197,7 @@ class Libzot
         $AS = null;
 
         if ($env['encoding'] === 'activitystreams') {
-            $AS = new ActivityStreams($data);
+            $AS = new ActivityStreams($data, portable_id: $env['sender']);
             if (
                 $AS->is_valid() && $AS->type === 'Announce' && is_array($AS->obj)
                 && array_key_exists('object', $AS->obj) && array_key_exists('actor', $AS->obj)
@@ -1204,7 +1205,7 @@ class Libzot
                 // This is a relayed/forwarded Activity (as opposed to a shared/boosted object)
                 // Reparse the encapsulated Activity and use that instead
                 logger('relayed activity', LOGGER_DEBUG);
-                $AS = new ActivityStreams($AS->obj);
+                $AS = new ActivityStreams($AS->obj, portable_id: $env['sender']);
             }
 
             if (!$AS->is_valid()) {
@@ -1291,7 +1292,7 @@ class Libzot
             $deliveries = self::public_recips($env, $AS);
         }
 
-        $deliveries = array_unique($deliveries);
+        $deliveries = array_values(array_unique($deliveries));
 
         if (!$deliveries) {
             logger('No deliveries on this site');
@@ -1632,6 +1633,10 @@ class Libzot
         }
 
         foreach ($deliveries as $d) {
+
+            $isMyConversation = false;
+
+
             $local_public = $public;
 
             // if any further changes are to be made, change a copy and not the original
@@ -1653,6 +1658,13 @@ class Libzot
 
             $DR->set_name($channel['channel_name'] . ' <' . Channel::get_webfinger($channel) . '>');
 
+            if (Tombstone::check($arr['mid'], $channel['channel_id'])
+                    || Tombstone::check($arr['parent_mid'], $channel['channel_id'])) {
+                $DR->update('update ignored');
+                $result[] = $DR->get();
+                continue;
+            }
+    
             if (($act) && ($act->obj) && (!is_array($act->obj))) {
                 // The initial object fetch failed using the sys channel credentials.
                 // Try again using the delivery channel credentials.
@@ -1769,7 +1781,7 @@ class Libzot
                 $arr['item_wall'] = 0;
             }
 
-            $friendofriend = false;
+            $isMail = (bool) (intval($arr['item_private']) === 2);
 
             if ((!$tag_delivery) && (!$local_public)) {
                 $allowed = (perm_is_allowed($channel['channel_id'], $sender, $perm));
@@ -1803,6 +1815,9 @@ class Libzot
                         $allowed = can_comment_on_post($sender, $parent[0]);
                         if (! $allowed) {
                             $allowed = Activity::comment_allowed($channel, $arr, $parent[0]);
+                            if ($allowed === 'moderated') {
+                                $arr['item_blocked'] = ITEM_MODERATED;
+                            }
                         }
                     } elseif ($permit_mentions) {
                         $allowed = true;
@@ -1828,11 +1843,9 @@ class Libzot
                     } else {
                         $allowed = true;
                     }
-
-                    $friendofriend = true;
                 }
 
-                if (intval($arr['item_private']) === 2) {
+                if ($isMail) {
                     if (!perm_is_allowed($channel['channel_id'], $sender, 'post_mail')) {
                         $allowed = false;
                     }
@@ -1996,14 +2009,21 @@ class Libzot
                     $arr['id'] = $r[0]['id'];
                     $arr['uid'] = $channel['channel_id'];
 
-                    if (post_is_importable($channel['channel_id'], $arr, $abook)) {
-                        // IConfig::Set($arr, 'activitypub', 'signed_data', $act->meta['signed_data'], false);
+                    $isFilteredByChannel = !post_is_importable($channel['channel_id'], $arr, $abook);
+
+                    if ($isFilteredByChannel) {
+                        if (PConfig::Get($channel['channel_id'], 'system','filter_moderate')) {
+                            $arr['item_blocked'] = ITEM_MODERATED;
+                        }
+                        else {
+                            $DR->update('update ignored');
+                            $result[] = $DR->get();
+                        }
+                    }
+                    else {
                         ObjCache::Set($arr['mid'] . '.nomad', $act->meta['signed_data']);
                         $item_result = self::update_imported_item($sender, $arr, $r[0], $channel['channel_id'], $tag_delivery);
                         $DR->update('updated');
-                        $result[] = $DR->get();
-                    } else {
-                        $DR->update('update ignored');
                         $result[] = $DR->get();
                     }
                 } else {
@@ -2048,7 +2068,18 @@ class Libzot
                     logger('message summary length exceeds max_import_size: truncated');
                 }
 
-                if (post_is_importable($arr['uid'], $arr, $abook)) {
+                $isFilteredByChannel = !post_is_importable($arr['uid'], $arr, $abook);
+
+                if ($isFilteredByChannel) {
+                    if (PConfig::Get($channel['channel_id'], 'system','filter_moderate')) {
+                        $arr['item_blocked'] = ITEM_MODERATED;
+                    }
+                    else {
+                        $DR->update('post ignored');
+                        $result[] = $DR->get();
+                    }
+                }
+                else {
                     // Strip old-style hubzilla bookmarks
                     if (str_contains($arr['body'], "#^[")) {
                         $arr['body'] = str_replace("#^[", "[", $arr['body']);
@@ -2075,9 +2106,6 @@ class Libzot
                         Hook::call('activity_received', $parr);
                     }
                     $DR->update(($item_id) ? 'posted' : 'storage failed: ' . $item_result['message']);
-                    $result[] = $DR->get();
-                } else {
-                    $DR->update('post ignored');
                     $result[] = $DR->get();
                 }
             }
@@ -3237,10 +3265,15 @@ class Libzot
 
     public static function is_nomad_request()
     {
-        $x = getBestSupportedMimeType([ 'application/x-zot+json', 'application/x-nomad+json' ]);
+        $supportedTypes = explode(',', self::getAccepts());
+        $x = getBestSupportedMimeType($supportedTypes);
         return (($x) ? true : false);
     }
 
+    public static function getAccepts() {
+        $default_accept_header = 'application/x-zot+json,application/x-nomad+json';
+        return Config::Get('system', 'nomad_accept_header', $default_accept_header);
+    }
 
     public static function zot_record_preferred($arr, $check = 'hubloc_network')
     {

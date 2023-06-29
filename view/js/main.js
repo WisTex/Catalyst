@@ -468,8 +468,6 @@ function doPoke(xchan) {
 	return true;
 }
 
-
-
 function update_role_text() {
 	let new_role = $("#id_permissions_role").val();
 	if (typeof(new_role) !== 'undefined') {
@@ -583,9 +581,6 @@ function alertsUpdate() {
 	}
 	alertstimer = setTimeout(alertsUpdate,alertsInterval);
 }
-
-
-
 
 function notificationsUpdate(cached_data) {
 	let pingCmd = 'ping' + ((localUser != 0) ? '?f=&uid=' + localUser : '');
@@ -886,7 +881,6 @@ function updateConvItems(mode,data) {
 		$('html, body').animate({ scrollTop: $('.item_' + submid_encoded).offset().top - $('nav').outerHeight() }, 'slow');
 		$('.item_' + submid_encoded).addClass('item-highlight');
 	}
-
 	
 	$(document.body).trigger("sticky_kit:recalc");
 }
@@ -930,6 +924,7 @@ function collapseHeight() {
 
 	let collapsedContentHeight = Math.ceil($("#region_2").height());
 	contentHeightDiff = liking ? 0 : origContentHeight - collapsedContentHeight;
+//	contentHeightDiff = origContentHeight - collapsedContentHeight;
 
 	console.log('collapseHeight() - contentHeightDiff: ' + contentHeightDiff + 'px');
 
@@ -983,7 +978,6 @@ function liveUpdate(notify_id) {
 
 	let origHeight = 0;
 	let expanded = $('.comment-edit-text.expanded');
-
 	
 	if(typeof profile_uid === 'undefined') profile_uid = false;
 
@@ -1201,7 +1195,6 @@ function dolike(ident, verb) {
 function doprofilelike(ident, verb) {
 	$.get('plike/' + ident + '?verb=' + verb, function() { window.location.href=window.location.href; });
 }
-
 
 function dopin(id) {
 	id = id.toString();
@@ -1453,25 +1446,6 @@ function save_draft_comment(id) {
 	return true;
 }
 
-
-function preview_mail() {
-	$("#mail-preview").val("1");
-	$("#mail-preview-content").show();
-	$.post(
-		"mail",
-		$("#prvmail-form").serialize(),
-		function(data) {
-			if(data.preview) {
-				$("#mail-preview-content").html(data.preview);
-				$("#mail-preview-content" + " a").click(function() { return false; });
-			}
-		},
-		"json"
-	);
-	$("#mail-preview").val("0");
-	return true;
-}
-
 function unpause() {
 	// unpause auto reloads if they are currently stopped
 	totStopped = false;
@@ -1585,6 +1559,9 @@ $(window).scroll(function () {
 				scroll_next = true;
 				loadingPage = true;
 				liveUpdate();
+			}
+			else {
+				console.log('has more content: ' + pageHasMoreContent);
 			}
 		}
 	}

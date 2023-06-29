@@ -3,6 +3,7 @@
 namespace Code\Module;
 
 use App;
+use Code\Lib\Libzot;
 use Code\Web\Controller;
 use Code\Web\HTTPSig;
 use Code\Lib\SConfig;
@@ -40,7 +41,7 @@ class Magic extends Controller
         }
 
         $basepath = $parsed['scheme'] . '://' . $parsed['host'] . (($parsed['port']) ? ':' . $parsed['port'] : '');
-        $owapath = SConfig::get($basepath, 'system', 'openwebauth', $basepath . '/owa');
+        $owapath = SConfig::Get($basepath, 'system', 'openwebauth', $basepath . '/owa');
 
         // This is ready-made for a plugin that provides a blacklist or "ask me" before blindly authenticating.
         // By default, we'll proceed without asking.
@@ -95,13 +96,14 @@ class Magic extends Controller
                 $dest = strip_query_param($dest, 'f');
 
                 $headers = [];
-				$headers['Accept'] = 'application/x-nomad+json, application/x-zot+json';
+				$headers['Accept'] = Libzot::getAccepts();
 				$headers['Content-Type'] = 'application/x-nomad+json';
                 $headers['X-Open-Web-Auth'] = random_string();
                 $headers['Host'] = $parsed['host'];
                 $headers['(request-target)'] = 'get ' . '/owa';
 
                 $headers = HTTPSig::create_sig($headers, $channel['channel_prvkey'], Channel::url($channel), true, 'sha512');
+
                 $x = Url::get($owapath, ['headers' => $headers]);
                 logger('owa fetch returned: ' . print_r($x, true), LOGGER_DATA);
                 if ($x['success']) {

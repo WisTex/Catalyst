@@ -1,3 +1,4 @@
+<!--suppress HtmlFormInputWithoutLabel -->
 <input id="invisible-wall-file-upload" type="file" name="files" style="visibility:hidden;position:absolute;top:-50px;left:-50px;width:0;height:0;" multiple>
 <input id="invisible-comment-upload" type="file" name="files" style="visibility:hidden;position:absolute;top:-50px;left:-50px;width:0;height:0;" multiple>
 <form id="profile-jot-form" action="{{$action}}" method="post" class="acl-form" data-form_id="profile-jot-form" data-allow_cid='{{$allow_cid}}' data-allow_gid='{{$allow_gid}}' data-deny_cid='{{$deny_cid}}' data-deny_gid='{{$deny_gid}}'>
@@ -25,14 +26,14 @@
 		<input type="hidden" name="source" id="jot-source" value="{{$source}}" />
 		<input type="hidden" name="lat" id="jot-lat" value="{{$lat}}" />
 		<input type="hidden" name="lon" id="jot-lon" value="{{$lon}}" />
-		<input type="hidden" id="jot-postid" name="post_id" value="{{$post_id}}" />
-		<input type="hidden" id="jot-webpage" name="webpage" value="{{$webpage}}" />
+		<input type="hidden" name="post_id" id="jot-postid" value="{{$post_id}}" />
+		<input type="hidden" name="webpage" id="jot-webpage" value="{{$webpage}}" />
 		<input type="hidden" name="preview" id="jot-preview" value="0" />
 		<input type="hidden" name="draft" id="jot-draft" value="0" />
 		<input type="hidden" name="checkin" id="jot-checkin" value="{{$checkin_checked}}" />
 		<input type="hidden" name="checkout" id="jot-checkout" value="{{$checkout_checked}}" />
 		<input type="hidden" name="hidden_mentions" id="jot-hidden-mentions" value="{{$hidden_mentions}}" />
-		<input type="hidden" id="jot-commentstate" name="comments_enabled" value="{{if $commentstate}}{{$commentstate}}{{else}}1{{/if}}" />
+		<input type="hidden" name="comments_enabled" id="jot-commentstate" value="{{if $commentstate}}{{$commentstate}}{{else}}1{{/if}}" />
 
 		{{if $webpage}}
 		<div id="jot-pagetitle-wrap" class="jothidden">
@@ -125,47 +126,53 @@
 				{{if $visitor}}
 				&nbsp;
 				<div class="btn-group mr-2 ">
-					{{if $writefiles}}
-					<button id="wall-file-upload" class="btn btn-outline-secondary btn-sm" title="{{$attach}}" >
-						<i id="wall-file-upload-icon" class="fa fa-paperclip jot-icons"></i>
+					<button type="button" id="attach-source" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="{{$embedFiles}}">
+						<i id="attach-source-icon" class="fa fa-paperclip jot-icons"></i>
 					</button>
-					{{/if}}
+					<div class="dropdown-menu">
+						{{if $writefiles}}
+						<a class="dropdown-item" id="wall-file-upload-sub" href="#" ><i class="fa fa-paperclip"></i>&nbsp;{{$attach}}</a>
+						{{/if}}
+						{{if $embedPhotos}}
+						<a class="dropdown-item" href="#" onclick="initializeEmbedPhotoDialog(); return false;"><i class="fa fa-cloud jot-icons"></i>&nbsp;{{$embedPhotos}}</a>
+						{{/if}}
+					</div>
 					{{if $weblink}}
 					<button id="profile-link-wrapper" class="btn btn-outline-secondary btn-sm " title="{{$weblink}}" ondragenter="linkdropper(event);" ondragover="linkdropper(event);" ondrop="linkdrop(event);"  onclick="jotGetLink(); return false;">
 						<i id="profile-link" class="fa fa-link jot-icons"></i>
 					</button>
 					{{/if}}
-					{{if $embedPhotos}}
-					<button id="embed-photo-wrapper" class="btn btn-outline-secondary btn-sm " title="{{$embedPhotos}}" onclick="initializeEmbedPhotoDialog();return false;">
-						<i id="embed-photo" class="fa fa-file-image-o jot-icons"></i>
-					</button>
-					{{/if}}
+
 					<button type="button" id="profile-poll-wrapper" class="btn btn-outline-secondary btn-sm " title="{{$poll}}" onclick="initPoll();">
 						<i id="profile-poll" class="fa fa-bar-chart jot-icons"></i>
 					</button>
 				</div>
 				<div class="btn-group ">
-					&nbsp;
+					&nbsp;<button type="button" id="location-dropdown" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="{{$locdesc}}">
+						<i id="location-menu-icon" class="fa fa-globe jot-icons"></i>
+					</button>
+					<div class="dropdown-menu">
 					{{if $setloc}}
-					<button id="profile-location-wrapper" class="btn btn-outline-secondary btn-sm" title="{{$setloc}}" onclick="jotGetLocation();return false;">
-						<i id="profile-location" class="fa fa-globe jot-icons"></i>
+					<button id="profile-location-wrapper" class="dropdown-item btn btn-outline-secondary btn-sm" title="{{$setloc}}" onclick="jotGetLocation();return false;">
+						<i id="profile-location" class="fa fa-globe jot-icons"></i> {{$setloc}}
 					</button>
 					{{/if}}
 					{{if $clearloc}}
-					<button id="profile-nolocation-wrapper" class="btn btn-outline-secondary btn-sm" title="{{$clearloc}}" onclick="jotClearLocation();return false;" disabled="disabled">
-						<i id="profile-nolocation" class="fa fa-circle-o jot-icons"></i>
+					<button id="profile-nolocation-wrapper" class="dropdown-item btn btn-outline-secondary btn-sm" title="{{$clearloc}}" onclick="jotClearLocation();return false;" disabled="disabled">
+						<i id="profile-nolocation" class="fa fa-circle-o jot-icons"></i> {{$clearloc}}
 					</button>
 					{{/if}}
 					{{if $feature_checkin}}
-						<button id="profile-checkin-wrapper" class="btn btn-outline-secondary btn-sm" title="{{$checkin}}" onclick="jotCheckin(); return false;">
-							<i id="profile-checkin" class="fa fa-sign-in jot-icons"></i>
+						<button id="profile-checkin-wrapper" class="dropdown-item btn btn-outline-secondary btn-sm" title="{{$checkin}}" onclick="jotCheckin(); return false;">
+							<i id="profile-checkin" class="fa fa-sign-in jot-icons"></i> {{$checkin}}
 						</button>
 					{{/if}}
 					{{if $feature_checkout}}
-						<button id="profile-checkout-wrapper" class="btn btn-outline-secondary btn-sm" title="{{$checkout}}" onclick="jotCheckout(); return false;">
-							<i id="profile-checkout" class="fa fa-sign-out jot-icons"></i>
+						<button id="profile-checkout-wrapper" class="dropdown-item btn btn-outline-secondary btn-sm" title="{{$checkout}}" onclick="jotCheckout(); return false;">
+							<i id="profile-checkout" class="fa fa-sign-out jot-icons"></i> {{$checkout}}
 						</button>
 					{{/if}}
+					</div>
 				{{else}}
 				<div class="btn-group d-none ">
 				{{/if}}
@@ -287,7 +294,7 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h4 class="modal-title" id="jotnetsModalLabel">{{$jotnets_label}}</h4>
-					<button type="button" class="close" data-bs-dismiss="modal" aria-hidden="true">&times;</button>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
 					{{$jotnets}}
@@ -306,7 +313,7 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h4 class="modal-title" id="jotcollModalLabel">{{$jotcoll_label}}</h4>
-					<button type="button" class="close" data-bs-dismiss="modal" aria-hidden="true">&times;</button>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
 					{{$jotcoll}}
@@ -325,12 +332,12 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h4 class="modal-title" id="commModalLabel">{{$commctrl}}</h4>
-				<button type="button" class="close" data-bs-dismiss="modal" aria-hidden="true">&times;</button>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body form-group" >
 				{{include file="field_checkbox.tpl" field=$comments_allowed}}				
 				{{include file="field_select.tpl" field=$comment_perms}}
-				<div class="date">
+				<div class="date form-group">
 					<label for="commclose-date">{{$commclosedate}}</label>
 					<input type="text" placeholder="yyyy-mm-dd HH:MM" name="start_text" value="{{$comments_closed}}" id="commclose-date" class="form-control" />
 				</div>
@@ -357,7 +364,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h4 class="modal-title" id="expiryModalLabel">{{$expires}}</h4>
-				<button type="button" class="close" data-bs-dismiss="modal" aria-hidden="true">&times;</button>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body form-group" style="width:90%">
 				<div class="date">
@@ -386,7 +393,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h4 class="modal-title" id="createdModalLabel">{{$future_txt}}</h4>
-				<button type="button" class="close" data-bs-dismiss="modal" aria-hidden="true">&times;</button>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body form-group" style="width:90%">
 				<div class="date">
@@ -413,7 +420,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h4 class="modal-title" id="embedPhotoModalLabel">{{$embedPhotosModalTitle}}</h4>
-				<button type="button" class="close" data-bs-dismiss="modal" aria-hidden="true">&times;</button>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body" id="embedPhotoModalBody" >
 				<div id="embedPhotoModalBodyAlbumListDialog" class="d-none">
@@ -432,7 +439,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h4 class="modal-title" id="linkModalLabel">{{$linkurl}}</h4>
-				<button type="button" class="close" data-bs-dismiss="modal" aria-hidden="true">&times;</button>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body form-group" style="width:100%">
 					<input type="text" name="link_url" id="id_link_url" class="form-control" >
@@ -459,6 +466,31 @@
 	</div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 {{/if}}
+
+<!-- start the new modal here -->
+<div class="modal fade" id="embedFileModal" tabindex="-1" aria-labelledby="embedFileModalLabel" aria-hidden="true">
+  	<div class="modal-dialog">
+    	<div class="modal-content">
+      		<div class="modal-header">
+        		<h1 class="modal-title fs-5" id="embedFileModalLabel">{{$insertFile}}</h1>
+        		<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      		</div>
+      		<div class="modal-body">
+			  	{{if $writefiles}}
+				<button id="wall-file-upload" class="btn btn-labeled btn-primary" data-bs-dismiss="modal" title="{{$attach}}"><i id="wall-file-upload-icon-1" class="fa fa-cloud-upload jot-icons me-1"></i>{{$fromDevice}}</button>
+				{{/if}}
+				
+	  			{{if $embedFiles}}
+				<button class="btn btn-labeled btn-success float-end" data-bs-toggle="modal" data-bs-target="#embedFileDirModal"><i class="fa fa-cloud jot-icons me-1"></i>{{$fromCloud}}</button>
+				{{/if}}
+      		</div>
+      		<div class="modal-footer">
+        		<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        	</div>
+    	</div>
+  	</div>
+</div>
+<!-- end the new modal here -->
 
 {{if $content || $attachment || $expanded}}
 <script>initEditor();</script>

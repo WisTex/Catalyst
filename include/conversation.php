@@ -4,6 +4,7 @@
 
 use Code\Lib\Apps;
 use Code\Lib\LibBlock;
+use Code\Lib\PConfig;
 use Code\Lib\ThreadStream;
 use Code\Lib\ThreadItem;
 use Code\Lib\Channel;
@@ -276,8 +277,13 @@ function visible_activity($item)
     // of those patforms. Hide them on our own platform because they make the conversation look like dung.
     // Performance wise this is a mess because we need to send two activities for every group comment.
 
-    if ($item['verb'] === 'Announce' && $item['author_xchan'] === $item['owner_xchan']) {
-        return false;
+    if ($item['verb'] === 'Announce') {
+        if ($item['author_xchan'] === $item['owner_xchan']) {
+            return false;
+        }
+        if (isset($item['author']) && intval($item['author']['xchan_type']) === XCHAN_TYPE_GROUP) {
+            return false;
+        }
     }
 
     foreach ($hidden_activities as $act) {
@@ -595,7 +601,7 @@ function conversation($items, $mode, $update, $page_mode = 'traditional', $prepa
                     'dislike' => '',
                     'comment' => '',
                     'pinned'    => ($pinned ? t('Pinned post') : ''),
-                    'pinnable'  => (($item['mid'] === $item['parent_mid'] && local_channel() && $item['owner_xchan'] == $observer['xchan_hash'] && $allowed_type && $item['item_private'] == 0) ? '1' : ''),
+                    'pinnable'  => (in_array($item['mid'], (intval($item['uid']) === local_channel()) ? PConfig::Get(intval($item['uid']), 'pinned', $item['item_type'], []) : [])),
                     'pinme'     => ($pinned ? t('Unpin this post') : t('Pin this post')),
                     'conv' => (($preview) ? '' : ['href' => $conv_link, 'title' => t('View Conversation')]),
                     'previewing' => $previewing,
@@ -956,8 +962,8 @@ function builtin_activity_puller($item, &$conv_responses)
         if ((activity_match($item['verb'], $verb)) && ($item['id'] != $item['parent'])) {
             $name = (($item['author']['xchan_name']) ? $item['author']['xchan_name'] : t('Unknown'));
             $url = (($item['author_xchan'] && $item['author']['xchan_photo_s'])
-                ? '<a class="dropdown-item" href="' . chanlink_hash($item['author_xchan']) . '">' . '<img class="menu-img-1" src="' . zid($item['author']['xchan_photo_s'])  . '" alt="' . urlencode($name) . '" /> ' . $name . '</a>'
-                : '<a class="dropdown-item" href="#" class="disabled">' . $name . '</a>'
+                ? '<a class="dropdown-item" href="' . chanlink_hash($item['author_xchan']) . '">' . '<img class="menu-img-1" src="' . zid($item['author']['xchan_photo_s'])  . '" alt="' . urlencode($name) . '" /> ' . $name . ' (' . relative_date($item['received']) .')</a>'
+                : '<a class="dropdown-item" href="#" class="disabled">' . $name . ' (' . relative_date($item['received']) . ')</a>'
             );
 
             if (! $item['thr_parent']) {
@@ -1093,8 +1099,12 @@ function z_status_editor($x, $popup = false)
         $weblink = false;
     }
 
-    $embedPhotos = t('Embed (existing) photo from your photo albums');
-
+    $embedPhotos = t('Attach file from your personal cloud');
+    $embedFiles = t('Attach/Embed file');
+    $insertFile = t('Insert File');
+    $fromDevice = t('from device');
+    $fromCloud = t('from personal cloud');
+    
     $writefiles = (($mimetype === 'text/x-multicode') ? perm_is_allowed($x['profile_uid'], get_observer_hash(), 'write_storage') : false);
     if (x($x, 'hide_attach')) {
         $writefiles = false;
@@ -1142,12 +1152,12 @@ function z_status_editor($x, $popup = false)
         '$whereareu' => t('Where are you right now?') . ' ' . t('(Enter a dot . to use your current device coordinates.)'),
         '$editor_autocomplete' => ((x($x, 'editor_autocomplete')) ? $x['editor_autocomplete'] : ''),
         '$bbco_autocomplete' => ((x($x, 'bbco_autocomplete')) ? $x['bbco_autocomplete'] : ''),
-        '$modalchooseimages' => t('Choose images to embed'),
-        '$modalchoosealbum' => t('Choose an album'),
-        '$modaldiffalbum' => t('Choose a different album...'),
-        '$modalerrorlist' => t('Error getting album list'),
-        '$modalerrorlink' => t('Error getting photo link'),
-        '$modalerroralbum' => t('Error getting album'),
+        '$modalchooseimages' => t('Choose files to embed'),
+        '$modalchoosealbum' => t('Choose a folder'),
+        '$modaldiffalbum' => t('Choose a different folder...'),
+        '$modalerrorlist' => t('Error getting folder list'),
+        '$modalerrorlink' => t('Error getting file link'),
+        '$modalerroralbum' => t('Error getting folder'),
         '$auto_save_draft' => $feature_auto_save_draft,
         '$confirmdelete' => t('Delete this item?'),
         '$reset' => $reset
@@ -1273,16 +1283,22 @@ function z_status_editor($x, $popup = false)
         '$underline' => t('Underline'),
         '$quote' => t('Quote'),
         '$code' => t('Code'),
-        '$attach' => t('Attach/Upload file'),
+        '$attach' => t('Attach file from your device'),
         '$weblink' => $weblink,
         '$linkurl' => t('Please enter a link location (URL)'),
         '$hidden_mentions' => ((x($x, 'hidden_mentions')) ? $x['hidden_mentions'] : ''),
         '$weblink_style' => [ t('Insert link only'), t('Embed content if possible') ],
+        '$embedFiles' => $embedFiles,
+        '$insertFile' => $insertFile,
+        '$fromDevice' => $fromDevice,
+        '$fromCloud' => $fromCloud,
+        '$embedFileDirModalTitle' => t('Embed a file from the cloud'),
         '$embedPhotos' => $embedPhotos,
         '$embedPhotosModalTitle' => t('Embed an image from your albums'),
         '$embedPhotosModalCancel' => t('Cancel'),
         '$embedPhotosModalOK' => t('OK'),
         '$setloc' => $setloc,
+        '$locdesc' => t('Location options'),
         '$poll' => t('Toggle poll'),
         '$poll_option_label' => t('Option'),
         '$poll_add_option_label' => t('Add option'),
@@ -1416,7 +1432,7 @@ function get_item_children($arr, $parent)
     }
 
     $thread_allow = get_config('system', 'thread_allow', true);
-    $thread_max   = intval(get_config('system', 'thread_maxlevel', 20));
+    $thread_max   = intval(get_config('system', 'thread_maxlevel', 80));
 
     foreach ($arr as $item) {
         if (intval($item['id']) !== intval($item['parent'])) {

@@ -72,7 +72,7 @@ class Inbox extends Controller
             http_status_exit(403, 'Permission denied');
         }
 
-        $AS = new ActivityStreams($data);
+        $AS = new ActivityStreams($data, portable_id: $hsig['portable_id']);
         if (
             $AS->is_valid() && $AS->type === 'Announce' && is_array($AS->obj)
             && array_key_exists('object', $AS->obj) && array_key_exists('actor', $AS->obj)
@@ -80,7 +80,7 @@ class Inbox extends Controller
             // This is a relayed/forwarded Activity (as opposed to a shared/boosted object)
             // Reparse the encapsulated Activity and use that instead
             logger('relayed activity', LOGGER_DEBUG);
-            $AS = new ActivityStreams($AS->obj);
+            $AS = new ActivityStreams($AS->obj, portable_id: $hsig['portable_id']);
         }
 
         // logger('debug: ' . $AS->debug());
@@ -147,10 +147,13 @@ class Inbox extends Controller
                     return;
                 }
                 if (!$AS->sigok) {
-                    // The activity signature isn't valid.
-                    return;
+                    if (! Config::Get('system','accept_unsigned_relay')) {
+                        // The activity signature isn't valid.
+                        return;
+                    }
                 }
             }
+
 
             if ($v) {
                 // The sender has been validated and stored
@@ -197,7 +200,20 @@ class Inbox extends Controller
                     "SELECT * from channel where channel_address = '%s' and channel_removed = 0 ",
                     dbesc(basename($AS->obj['id']))
                 );
-            } else {
+            }
+            // This is primarily for lemmy - as those accept|reject/follow activities have no addressing
+            // and were delivered to the public inbox.  
+            elseif (in_array($AS->type, ['Accept', 'Reject'])
+                && is_array($AS->obj)
+                && in_array($AS->obj['type'], ['Follow', 'Join'])
+                && isset($AS->obj['actor'])) {
+                $channels = q(
+                    "SELECT * from channel where channel_address = '%s' and channel_removed = 0 ",
+                    dbesc(basename(is_array($AS->obj['actor']) ? $AS->obj['actor']['id'] : $AS->obj['actor']))
+                );
+            }
+            else {
+
                 $collections = Activity::get_actor_collections($observer_hash);
 
                 if (is_array($collections) && in_array($collections['followers'], $AS->recips)

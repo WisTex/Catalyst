@@ -5,11 +5,13 @@ use Code\Lib\Libzot;
 use Code\Lib\Oembed;
 use Code\Lib\SvgSanitizer;
 use Code\Extend\Hook;
-use Michelf\MarkdownExtra;
+use chillerlan\QRCode\QRCode;
+
 
 /**
  * @file include/bbcode.php
- * @brief BBCode related functions for parsing, etc.
+ * @brief Converts Markdown and BBCode constructs into HTML.
+ *
  */
 
 require_once('include/event.php');
@@ -119,7 +121,7 @@ function tryzrlaudio($match)
         $link = zid($link);
     }
 
-    return '<audio src="' . str_replace(' ', '%20', $link) . '" controls="controls" preload="none"><a href="' . str_replace(' ', '%20', $link) . '">' . $link . '</a></audio>';
+    return '<audio src="' . str_replace(' ', '%20', $link) . '" controls="controls" preload="none" class="my-2"><a href="' . str_replace(' ', '%20', $link) . '">' . $link . '</a></audio>';
 }
 
 function tryzrlvideo($match)
@@ -135,7 +137,7 @@ function tryzrlvideo($match)
         $poster = 'poster="' . escape_tags($static_link) . '" ' ;
     }
 
-    return '<video ' . $poster . ' controls="controls" preload="none" src="' . str_replace(' ', '%20', $link) . '" style="width:100%; max-width:100%;"><a href="' . str_replace(' ', '%20', $link) . '">' . $link . '</a></video>';
+    return '<video ' . ' controls="controls" preload="metadata" src="' . str_replace(' ', '%20', $link).'" class="img-fluid img-thumbnail"><a href="' . str_replace(' ', '%20', $link) .'">' . $link . '#t=1</a></video>';
 }
 
 function videowithopts($match)
@@ -167,9 +169,6 @@ function videowithopts($match)
 
     return '<video ' . $poster . ' controls="controls" preload="none" src="' . str_replace(' ', '%20', $link) . '" style="width:100%; max-width:100%;"><a href="' . str_replace(' ', '%20', $link) . '">' . $link . '</a></video>';
 }
-
-
-
 
 // [noparse][i]italic[/i][/noparse] turns into
 // [noparse][ i ]italic[ /i ][/noparse],
@@ -783,6 +782,12 @@ function bb_map_location($match)
     return str_replace($match[0], '<div class="map"  >' . generate_named_map($match[1]) . '</div>', $match[0]);
 }
 
+function bb_qr($match)
+{
+    $str = $match[1];
+    return str_replace($match[0], '<img src="' . (new QRCode())->render($str) . '" alt="' . $str . '" title="' . $str . '" loading="eager" />', $match[0]);
+}
+
 function bb_opentag($match)
 {
     $openclose = (($match[2]) ? '<span class="bb-open" title="' . t('Click to open/close') . '">' . $match[1] . '</span>' : t('Click to open/close'));
@@ -1201,7 +1206,11 @@ function multicode_purify($s)
 
 function bb_mdlink_protect($matches)
 {
-    if ($matches[1] === $matches[3]) {
+    $token = strtok($matches[1],'= ');
+    if (!$token) {
+        $token = $matches[1];
+    }
+    if ($token === $matches[3]) {
         return '[' . $matches[1]  . ']' . html_entity_decode('&#8203;')
             . '(' . $matches[2] . ')[/' . $matches[3] . ']';
     }
@@ -1326,7 +1335,6 @@ function md_bolditalic($content)
     return '<strong><em>' . $content[1] . $content[3] . '</em></strong>';
 }
 
-
 /** @noinspection HtmlUnknownAttribute */
 function md_image($content)
 {
@@ -1401,15 +1409,27 @@ function bb_hltag($matches)
 function bb_nakedlinks($Text) {
     $urlchars = '[a-zA-Z0-9\pL\:\/\-\?\&\;\.\=\_\~\#\%\$\!\+\,\@\(\)]';
 
+    $Text = preg_replace_callback('/\[url(.*?)\[\/(url)\]/ism', '\red_escape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[zrl(.*?)\[\/(zrl)\]/ism', '\red_escape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[svg(.*?)\[\/(svg)\]/ism', '\red_escape_codeblock', $Text);
     $Text = preg_replace_callback('/\[img(.*?)\[\/(img)\]/ism', '\red_escape_codeblock', $Text);
     $Text = preg_replace_callback('/\[zmg(.*?)\[\/(zmg)\]/ism', '\red_escape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[audio(.*?)\[\/(audio)\]/ism', '\red_escape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[video(.*?)\[\/(video)\]/ism', '\red_escape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[oembed(.*?)\[\/(oembed)\]/ism', '\red_escape_codeblock', $Text);
 
     if (str_contains($Text, 'http')) {
-        $Text = preg_replace("/([^\]\='" . '"' . "\;\/])(https?\:\/\/$urlchars+)/ismu", '$1<a href="$2" target="_blank" rel="nofollow noopener">$2</a>', $Text);
+        $Text = preg_replace("/([^\]\='" . '"' . "\;\/]\()(https?\:\/\/$urlchars+)/ismu", '$1<a href="$2" target="_blank" rel="nofollow noopener">$2</a>', $Text);
     }
-
+    $Text = preg_replace_callback('/\[\$b64url(.*?)\[\/(url)\]/ism', '\red_unescape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[\$b64zrl(.*?)\[\/(zrl)\]/ism', '\red_unescape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[\$b64svg(.*?)\[\/(svg)\]/ism', '\red_unescape_codeblock', $Text);
     $Text = preg_replace_callback('/\[\$b64img(.*?)\[\/(img)\]/ism', '\red_unescape_codeblock', $Text);
     $Text = preg_replace_callback('/\[\$b64zmg(.*?)\[\/(zmg)\]/ism', '\red_unescape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[\$b64audio(.*?)\[\/(audio)\]/ism', '\red_unescape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[\$b64video(.*?)\[\/(video)\]/ism', '\red_unescape_codeblock', $Text);
+    $Text = preg_replace_callback('/\[\$b64oembed(.*?)\[\/(oembed)\]/ism', '\red_unescape_codeblock', $Text);
+
     return $Text;
 }
 
@@ -1667,88 +1687,16 @@ function bbcode($Text, $options = [])
 
     $Text = str_replace("\r\n", "\n", $Text);
 
+
     if ($bbonly) {
-        $Text = purify_html($Text);
-    } else {
-        // Here we are catching things like [quote](something)[/quote] and [b](something)[/b] and preventing them from turning into broken markdown links [text](url)
-        // We'll do this with a zero-width space between ] and (
-        $Text = preg_replace_callback("/\[(.*?)\]\((.*?)\)\[\/(.*?)\]/ism", 'bb_mdlink_protect', $Text);
-
-        // save code blocks from being interpreted as markdown
-
-        $Text = preg_replace_callback("/\[code(.*?)\](.*?)\[\/code\]/ism", 'bb_code_preprotect', $Text);
-
-        // Quick but flawed fix for performance regression after purification
-        // was moved to rendering code to allow multiple code formats
-        // A proper fix would be to escape any code blocks before purification,
-        // restore them and store the resultant intermediate multicode.
-        // This is now accomplished using multicode_purify()
-
-        //      if (strpbrk($Text,'<>') !== false) {
-        //          $Text = purify_html($Text, [ 'escape' ]);
-        //      }
-
-        // the bbcode tag 'nomd' will bypass markdown processing for any given text region
-
-        $Text = preg_replace_callback('#\[nomd\](.*?)\[\/nomd\]#ism', 'md_protect', $Text);
-
-        // and for completeness, there's 'nohtml'
-
-
-        $Text = preg_replace_callback('#\[nohtml\](.*?)\[\/nohtml\]#ism', 'html_protect', $Text);
-
-
-        // Perform some markdown conversions before translating linefeeds so as to keep the regexes manageable
-        // The preceding character check in bold/italic sequences is so we don't mistake underscore/asterisk in the middle of conversational text as an italic trigger.
-
-        $Text = preg_replace_callback('#(^|\n| )(?<!\\\)([*_]{3})([^\n]+?)\2#', 'md_bolditalic', $Text);
-        $Text = preg_replace_callback('#(^|\n| )(?<!\\\)([*_]{2})([^\n]+?)\2#', 'md_bold', $Text);
-        $Text = preg_replace_callback('#(^|\n| )(?<!\\\)([*_])([^\n|`]+?)\2#m', 'md_italic', $Text);
-
-        // strip the backslash from escaped bold/italic markdown sequences
-        $Text = preg_replace('#(\\\)([*_])#', '$2', $Text);
-
-        $Text = preg_replace_callback('{ ^(.+?)[ ]*\n(=+|-+)[ ]*\n+ }mx', 'md_topheader', $Text);
-        $Text = preg_replace_callback('#^(\#{1,6})\s+([^\#]+?)\s*\#*$#m', 'md_header', $Text);
-        $Text = preg_replace_callback('#(^|\n)([`~]{3,})(?: *\.?([a-zA-Z0-9\-.]+))?\n+([\s\S]+?)\n+\2(\n|$)#', 'md_codeblock', $Text);
-        // do not use the "indent by tab or 4 spaces" markdown codeblock trigger - this produces way too many false positives
-        //      $Text = preg_replace('#^(?:\0(.*?)\0\n)?( {4}|\t)(.*?)$#m','<pre><code>$3</code></pre>',$Text);
-        // markdown inline code blocks must be preceded by space or linebreak
-        $Text = preg_replace('#(^|\n| )(?<!\\\)`([^\n`]+?)`#', '$1<code class="inline-code">$2</code>', $Text);
-        // strip backslash escape for inline code
-        $Text = preg_replace('#(\\\)`#', '`', $Text);
-        $Text = preg_replace('#<\/code><\/pre>\n<pre><code(>| .*?>)#', '<br>', $Text);
-
-        // blockquotes
-        $Text = preg_replace('#^(&gt;)+ +(.*?)$#m', '<blockquote>$2</blockquote>', $Text);
-        $Text = preg_replace('#^(\>)+ +(.*?)$#m', '<blockquote>$2</blockquote>', $Text);
-        $Text = preg_replace('#</blockquote>\n<blockquote>#', "\n", $Text);
-
-        // links
-        $Text = preg_replace_callback('#!\[[^\]]*\]\((.*?)(?=\"|\))(\".*\")?\)(?!`)#', 'md_image', $Text);
-        $Text = preg_replace('#\[([^\[]+)\]\((?:javascript:)?([^\)]+)\)(?!`)#', '<a href="$2">$1</a>', $Text);
-
-        // unordered lists
-        $matches = [];
-        // Ignore if there is only one list element as it could be a false positive.
-        if (preg_match_all('#^(?<!\\\)[*\-+] +(.*?)$#m', $Text, $matches, PREG_SET_ORDER) && count($matches) > 1) {
-            $Text = preg_replace('#^(?<!\\\)[*\-+] +(.*?)$#m', '<ul><li>$1</li></ul>', $Text);
-            // strip the backslash escape if present
-            $Text = preg_replace('#^(\\\)([*\-+]) #m', '$2', $Text);
-        }
-        // order lists
-        $Text = preg_replace('#^\d+[\.\)] +(.*?)$#m', '<ol><li>$1</li></ol>', $Text);
-
-        $Text = preg_replace('/\s*<\/(ol|ul)>\n+<\1>\s*/', "\n", $Text);
-
-        $Text = bb_code_preunprotect($Text);
+        $Text = escape_tags($Text);
     }
-
 
     // Convert new line chars to html <br> tags
 
-    $Text = str_replace(array("\r", "\n"), array('<br>', '<br>'), $Text);
+    $Text = str_replace("\n", '<br>', $Text);
     $Text = str_replace(array("\t", "  "), array("&nbsp;&nbsp;&nbsp;&nbsp;", "&nbsp;&nbsp;"), $Text);
+
 
     // Check for [code] text
     if (str_contains($Text, '[code]')) {
@@ -1798,11 +1746,6 @@ function bbcode($Text, $options = [])
         $Text = str_replace('[observer.photo/]', '', $Text);
     }
 
-
-    // Replace naked urls
-
-    $Text = bb_nakedlinks($Text);
-
     // Perform URL Search
 
     $count = 0;
@@ -1812,20 +1755,20 @@ function bbcode($Text, $options = [])
     }
 
     if (str_contains($Text, '[/url]')) {
-        $Text = preg_replace("/\#\^\[url\]([$URLSearchString]*)\[\/url\]/ism", '<a class="bookmark" href="$1" ' . $target . ' rel="nofollow noopener" >$1</a>', $Text);
-        $Text = preg_replace("/\#\^\[url\=([$URLSearchString]*)\](.*?)\[\/url\]/ism", '<a class="bookmark" href="$1" ' . $target . ' rel="nofollow noopener" >$2</a>', $Text);
-        $Text = preg_replace("/\[url\]([$URLSearchString]*)\[\/url\]/ism", '<a href="$1" ' . $target . ' rel="nofollow noopener" >$1</a>', $Text);
-        $Text = preg_replace("/\@(\!?)\[url\=([$URLSearchString]*)\](.*?)\[\/url\]/ism", '@$1<span class="h-card"><a class="u-url mention" href="$2" ' . $target . ' rel="nofollow noopener" >$3</a></span>', $Text);
-        $Text = preg_replace("/\[url\=([$URLSearchString]*)\](.*?)\[\/url\]/ism", '<a href="$1" ' . $target . ' rel="nofollow noopener" >$2</a>', $Text);
+        $Text = preg_replace("/\#\^\[url\]([$URLSearchString]*?)\[\/url\]/ism", '<a class="bookmark" href="$1" ' . $target . ' rel="nofollow noopener" >$1</a>', $Text);
+        $Text = preg_replace("/\#\^\[url\=([$URLSearchString]*?)\](.*?)\[\/url\]/ism", '<a class="bookmark" href="$1" ' . $target . ' rel="nofollow noopener" >$2</a>', $Text);
+        $Text = preg_replace("/\[url\]([$URLSearchString]*?)\[\/url\]/ism", '<a href="$1" ' . $target . ' rel="nofollow noopener" >$1</a>', $Text);
+        $Text = preg_replace("/\@(\!?)\[url\=([$URLSearchString]*?)\](.*?)\[\/url\]/ism", '@$1<span class="h-card"><a class="u-url mention" href="$2" ' . $target . ' rel="nofollow noopener" >$3</a></span>', $Text);
+        $Text = preg_replace("/\[url\=([$URLSearchString]*?)\](.*?)\[\/url\]/ism", '<a href="$1" ' . $target . ' rel="nofollow noopener" >$2</a>', $Text);
     }
 
     if (str_contains($Text, '[/zrl]')) {
         // render hubzilla bookmarks as normal links
-        $Text = preg_replace("/\#\^\[zrl\]([$URLSearchString]*)\[\/zrl\]/ism", '<a class="zrl bookmark" href="$1" ' . $target . ' rel="nofollow noopener" >$1</a>', $Text);
-        $Text = preg_replace("/\#\^\[zrl\=([$URLSearchString]*)\](.*?)\[\/zrl\]/ism", '<a class="zrl bookmark" href="$1" ' . $target . ' rel="nofollow noopener" >$2</a>', $Text);
-        $Text = preg_replace("/\[zrl\]([$URLSearchString]*)\[\/zrl\]/ism", '<a class="zrl" href="$1" ' . $target . ' rel="nofollow noopener" >$1</a>', $Text);
-        $Text = preg_replace("/\@(\!?)\[zrl\=([$URLSearchString]*)\](.*?)\[\/zrl\]/ism", '@$1<span class="h-card"><a class="zrl u-url mention" href="$2" ' . $target . ' rel="nofollow noopener" >$3</a></span>', $Text);
-        $Text = preg_replace("/\[zrl\=([$URLSearchString]*)\](.*?)\[\/zrl\]/ism", '<a class="zrl" href="$1" ' . $target . ' rel="nofollow noopener" >$2</a>', $Text);
+        $Text = preg_replace("/\#\^\[zrl\]([$URLSearchString]*?)\[\/zrl\]/ism", '<a class="zrl bookmark" href="$1" ' . $target . ' rel="nofollow noopener" >$1</a>', $Text);
+        $Text = preg_replace("/\#\^\[zrl\=([$URLSearchString]*?)\](.*?)\[\/zrl\]/ism", '<a class="zrl bookmark" href="$1" ' . $target . ' rel="nofollow noopener" >$2</a>', $Text);
+        $Text = preg_replace("/\[zrl\]([$URLSearchString]*?)\[\/zrl\]/ism", '<a class="zrl" href="$1" ' . $target . ' rel="nofollow noopener" >$1</a>', $Text);
+        $Text = preg_replace("/\@(\!?)\[zrl\=([$URLSearchString]*?)\](.*?)\[\/zrl\]/ism", '@$1<span class="h-card"><a class="zrl u-url mention" href="$2" ' . $target . ' rel="nofollow noopener" >$3</a></span>', $Text);
+        $Text = preg_replace("/\[zrl\=([$URLSearchString]*?)\](.*?)\[\/zrl\]/ism", '<a class="zrl" href="$1" ' . $target . ' rel="nofollow noopener" >$2</a>', $Text);
     }
 
     // named anchors do not work well in conversational text, as it is often collapsed by a "showmore" script.
@@ -2109,7 +2052,8 @@ function bbcode($Text, $options = [])
         $Text = str_replace([ '<blockquote>','</blockquote>' ], [ '“', '”' ], $Text);
     }
 
-
+    // Replace naked urls
+    $Text = bb_nakedlinks($Text);
     // Images
 
     // [img]pathtoimage[/img]
@@ -2121,6 +2065,11 @@ function bbcode($Text, $options = [])
     }
 
     $Text = preg_replace_callback("/\[([zi])mg([ \=])(.*?)\](.*?)\[\/[zi]mg\]/ism", 'bb_imgoptions', $Text);
+
+    if (str_contains($Text,'[/qr]')) {
+        $Text = preg_replace_callback("/\[qr\](.*?)\[\/qr\]/ism", 'bb_qr', $Text);
+    }
+
 
     if ($censored) {
         // This function in include/misc.php separates images wrapped in links
@@ -2197,10 +2146,71 @@ function bbcode($Text, $options = [])
         $Text = preg_replace_callback("/\[svg(.*?)\](.*?)\[\/svg\]/ism", 'bb_svg', $Text);
     }
 
-    // oembed tag
-    if (! $export) {
-        $Text = Oembed::bbcode2html($Text);
+    // Markdown processing
+    
+    if (!$bbonly) {
+
+        // the bbcode tag 'nomd' will bypass markdown processing for any given text region
+        $Text = preg_replace_callback('#\[nomd\](.*?)\[\/nomd\]#ism', 'md_protect', $Text);
+
+        $Text = preg_replace_callback("/\[code(.*?)\](.*?)\[\/code\]/ism", 'bb_code_preprotect', $Text);
+
+        $Text = str_replace('<br>', "\n", $Text);
+        // Perform some markdown conversions before translating linefeeds so as to keep the regexes manageable
+        // The preceding character check in bold/italic sequences is so we don't mistake underscore/asterisk in the middle of conversational text as an italic trigger.
+
+        $Text = preg_replace_callback('#(^|\n| )(?<!\\\)([*_]{3})([^\n]+?)\2#', 'md_bolditalic', $Text);
+        $Text = preg_replace_callback('#(^|\n| )(?<!\\\)([*_]{2})([^\n]+?)\2#', 'md_bold', $Text);
+        $Text = preg_replace_callback('#(^|\n| )(?<!\\\)([*_])([^\n|`]+?)\2#m', 'md_italic', $Text);
+
+        // strip the backslash from escaped bold/italic markdown sequences
+        $Text = preg_replace('#(\\\)([*_])#', '$2', $Text);
+
+        $Text = preg_replace_callback('{ ^(.+?)[ ]*\n(=+|-+)[ ]*\n+ }mx', 'md_topheader', $Text);
+        $Text = preg_replace_callback('#^(\#{1,6})\s+([^\#]+?)\s*\#*$#m', 'md_header', $Text);
+        $Text = preg_replace_callback('#(^|\n)([`~]{3,})(?: *\.?([a-zA-Z0-9\-.]+))?\n+([\s\S]+?)\n+\2(\n|$)#', 'md_codeblock', $Text);
+        // do not use the "indent by tab or 4 spaces" markdown codeblock trigger - this produces way too many false positives
+        //      $Text = preg_replace('#^(?:\0(.*?)\0\n)?( {4}|\t)(.*?)$#m','<pre><code>$3</code></pre>',$Text);
+        // markdown inline code blocks must be preceded by space or linebreak
+        $Text = preg_replace('#(^|\n| )(?<!\\\)`([^\n`]+?)`#', '$1<code class="inline-code">$2</code>', $Text);
+        // strip backslash escape for inline code
+        $Text = preg_replace('#(\\\)`#', '`', $Text);
+        $Text = preg_replace('#<\/code><\/pre>\n<pre><code(>| .*?>)#', '<br>', $Text);
+
+        // blockquotes
+        $Text = preg_replace('#^(&gt;)+ +(.*?)$#m', '<blockquote>$2</blockquote>', $Text);
+        $Text = preg_replace('#^(\>)+ +(.*?)$#m', '<blockquote>$2</blockquote>', $Text);
+        $Text = preg_replace('#</blockquote>\n<blockquote>#', "\n", $Text);
+
+        // links
+        $Text = preg_replace_callback('#!\[[^\]]*\]\((.*?)(?=\"|\))(\".*\")?\)(?!`)#', 'md_image', $Text);
+        $Text = preg_replace('#\[([^\[]+)\]\((?:javascript:)?([^\)]+)\)(?!`)#', '<a href="$2">$1</a>', $Text);
+
+        // unordered lists
+        $matches = [];
+        // Ignore if there is only one list element as it could be a false positive.
+        if (preg_match_all('#^(?<!\\\)[*\-+] +(.*?)$#m', $Text, $matches, PREG_SET_ORDER) && count($matches) > 1) {
+            $Text = preg_replace('#^(?<!\\\)[*\-+] +(.*?)$#m', '<ul><li>$1</li></ul>', $Text);
+            // strip the backslash escape if present
+            $Text = preg_replace('#^(\\\)([*\-+]) #m', '$2', $Text);
+        }
+        // order lists
+        $Text = preg_replace('#^(\d+[\.\)]) +(.*?)$#m', '<ol><li value="$1">$2</li></ol>', $Text);
+
+        $Text = preg_replace('/\s*<\/(ol|ul)>\n+<\1>\s*/', '', $Text);
+
+        $Text = str_replace("\n", '<br>', $Text);
+        $Text = bb_code_preunprotect($Text);
+
+
     }
+
+    // oembed tag
+
+    $Text = Oembed::bbcode2html($Text, $export, $target);
+
+
+
 
     // Avoid triple linefeeds through oembed
     $Text = str_replace("<br style='clear:left'></span><br><br>", "<br style='clear:left'></span><br>", $Text);
@@ -2244,26 +2254,11 @@ function bbcode($Text, $options = [])
     // replace escaped links in code= blocks
     $Text = str_replace('%eY9-!', 'http', $Text);
     $Text = bb_code_unprotect($Text);
-
-    // This lets you use HTML entities in posts - just wrap them in brackets. For instance [&copy;] to display a copyright symbol.
-
-    $Text = preg_replace('/\[\&amp\;([#a-z0-9]+)\;\]/', '&$1;', $Text);
-
+    $Text = str_replace('<code><br>', '<code>', $Text);
     // fix any escaped ampersands that may have been converted into links
 
     if (str_contains($Text, '&amp;')) {
         $Text = preg_replace("/\<(.*?)(src|href)=(.*?)\&amp\;(.*?)\>/ism", '<$1$2=$3&$4>', $Text);
-    }
-
-    // This is subtle - it's an XSS filter. It only accepts links with a protocol scheme and where
-    // the scheme begins with z (zhttp), h (http(s)), f (ftp(s)), g (gemini), m (mailto|magnet), t (tel) and named anchors.
-    // data: urls are allowed if exporting to activitypub which allows inline svg to federate, but not
-    // to be used for local display
-
-    if ($activitypub) {
-        $Text = preg_replace("/\<(.*?)(src|href)=\"[^dzghfmt#](.*?)\>/ism", '<$1$2="">', $Text);
-    } else {
-        $Text = preg_replace("/\<(.*?)(src|href)=\"[^zhgfmt#](.*?)\>/ism", '<$1$2="">', $Text);
     }
 
     $Text = bb_replace_images($Text, $saved_images);

@@ -77,6 +77,7 @@ class Channel
         $noindex = ((x($_POST, 'noindex')) ? intval($_POST['noindex']) : 0);
         $channel_menu = ((x($_POST['channel_menu'])) ? htmlspecialchars_decode(trim($_POST['channel_menu']), ENT_QUOTES) : '');
 
+        $nomadic_ids_in_profile = ((x($_POST, 'nomadic_ids_in_profile')) ? intval($_POST['nomadic_ids_in_profile']) : 0);
         $unless_mention_count = ((x($_POST, 'unless_mention_count')) ? intval($_POST['unless_mention_count']) : 0);
         $unless_tag_count = ((x($_POST, 'unless_tag_count')) ? intval($_POST['unless_tag_count']) : 0);
         $preview_outbox = ((x($_POST, 'preview_outbox')) ? intval($_POST['preview_outbox']) : 0);
@@ -95,6 +96,8 @@ class Channel
         $mailhost = ((array_key_exists('mailhost', $_POST)) ? notags(trim($_POST['mailhost'])) : '');
         $profile_assign = ((x($_POST, 'profile_assign')) ? notags(trim($_POST['profile_assign'])) : '');
         $permit_all_mentions = (($_POST['permit_all_mentions'] == 1) ? 1 : 0);
+        $permit_all_likes = (($_POST['permit_all_likes'] == 1) ? 1 : 0);
+        $permit_moderated_comments = (($_POST['permit_moderated_comments'] == 1) ? 1 : 0);
         $close_comment_days = (($_POST['close_comments']) ? intval($_POST['close_comments']) : 0);
         set_pconfig(local_channel(), 'system', 'close_comments', $close_comment_days ? $close_comment_days . ' days' : '');
 
@@ -175,11 +178,14 @@ class Channel
         set_pconfig(local_channel(), 'system', 'activitypub', $activitypub);
         set_pconfig(local_channel(), 'system', 'autoperms', $this->autoperms);
         set_pconfig(local_channel(), 'system', 'tag_username', $tag_username);
+        set_pconfig(local_channel(), 'system', 'permit_moderated_comments', $permit_moderated_comments);
         set_pconfig(local_channel(), 'system', 'permit_all_mentions', $permit_all_mentions);
+        set_pconfig(local_channel(), 'system', 'permit_all_likes', $permit_all_likes);
         set_pconfig(local_channel(), 'system', 'unless_mention_count', $unless_mention_count);
         set_pconfig(local_channel(), 'system', 'unless_tag_count', $unless_tag_count);
         set_pconfig(local_channel(), 'system', 'noindex', $noindex);
         set_pconfig(local_channel(), 'system', 'preview_outbox', $preview_outbox);
+        set_pconfig(local_channel(), 'system', 'nomadic_ids_in_profile', $nomadic_ids_in_profile);
 
         $r = q(
             "update channel set channel_name = '%s', channel_pageflags = %d, channel_timezone = '%s', channel_location = '%s', 
@@ -444,7 +450,7 @@ class Channel
             '$h_basic' => t('Basic Settings'),
             '$channel_name' => ['channel_name', t('Full name'), $channel_name, ''],
             '$timezone' => ['timezone_select', t('Your timezone'), $timezone, t('This is important for showing the correct time on shared events'), get_timezones()],
-            '$defloc' => ['defloc', t('Default post location'), $defloc, t('Optional geographical location to display on your posts')],
+            '$defloc' => ['defloc', t('Default post location (place name)'), $defloc, t('Optional geographical location to display on your posts')],
             '$allowloc' => ['allow_location', t('Obtain post location from your web browser or device'), ((get_pconfig(local_channel(), 'system', 'use_browser_location')) ? 1 : ''), '', $yes_no],
             '$set_location' => [ 'set_location', t('Over-ride your web browser or device and use these coordinates (latitude,longitude)'), get_pconfig(local_channel(),'system','set_location')],
             '$adult' => ['adult', t('Adult content'), $adult_flag, t('Enable to indicate if this channel frequently or regularly publishes adult content. (Please also tag any adult material and/or nudity with #NSFW)'), $yes_no],
@@ -496,6 +502,8 @@ class Channel
             '$post_newfriend' => ['post_newfriend', t('accepting a friend request'), $post_newfriend, '', $yes_no],
             '$post_joingroup' => ['post_joingroup', t('joining a group/community'), $post_joingroup, '', $yes_no],
             '$post_profilechange' => ['post_profilechange', t('making an <em>interesting</em> profile change'), $post_profilechange, '', $yes_no],
+            '$nomadic_ids_in_profile' => ['nomadic_ids_in_profile', t('Show nomadic links in profile'), PConfig::Get(local_channel(),'system','nomadic_ids_in_profile',true), '', $yes_no],
+
             '$lbl_not' => t('Send a notification email when:'),
             '$notify1' => ['notify1', t('You receive a connection request'), ($notify & NOTIFY_INTRO), NOTIFY_INTRO, '', $yes_no],
 //          '$notify2'  => array('notify2', t('Your connections are confirmed'), ($notify & NOTIFY_CONFIRM), NOTIFY_CONFIRM, '', $yes_no),
@@ -526,13 +534,15 @@ class Channel
 //          '$vnotify12'  => array('vnotify12', t('Unseen shared files'), ($vnotify & VNOTIFY_FILES), VNOTIFY_FILES, '', $yes_no),
             '$vnotify13' => (($public_stream_mode) ? ['vnotify13', t('Unseen public stream activity'), ($vnotify & VNOTIFY_PUBS), VNOTIFY_PUBS, '', $yes_no] : []),
             '$vnotify14' => ['vnotify14', t('Unseen likes and dislikes'), ($vnotify & VNOTIFY_LIKE), VNOTIFY_LIKE, '', $yes_no],
-            '$vnotify15' => ['vnotify15', t('Unseen group posts'), ($vnotify & VNOTIFY_FORUMS), VNOTIFY_FORUMS, '', $yes_no],
+//            '$vnotify15' => ['vnotify15', t('Unseen group posts'), ($vnotify & VNOTIFY_FORUMS), VNOTIFY_FORUMS, '', $yes_no],
             '$vnotify16' => ((is_site_admin()) ? ['vnotify16', t('Reported content'), ($vnotify & VNOTIFY_REPORTS), VNOTIFY_REPORTS, '', $yes_no] : []),
             '$vnotify17' => ['vnotify17', t('Moderated Activities'), ($vnotify & VNOTIFY_MODERATE), VNOTIFY_MODERATE, t('Recommended'), $yes_no],
             '$desktop_notifications_info' => t('Desktop notifications are unavailable because the required browser permission has not been granted'),
             '$desktop_notifications_request' => t('Grant permission'),
             '$mailhost' => ['mailhost', t('Email notifications sent from (hostname)'), get_pconfig(local_channel(), 'system', 'email_notify_host', App::get_hostname()), sprintf(t('If your channel is mirrored to multiple locations, set this to your preferred location. This will prevent duplicate email notifications. Example: %s'), App::get_hostname())],
+            '$permit_moderated_comments' => ['permit_moderated_comments', t('Moderate refused comments'), get_pconfig(local_channel(), 'system', 'permit_moderated_comments'), t('Default is to ignore refused comments'), $yes_no],
             '$permit_all_mentions' => ['permit_all_mentions', t('Accept messages from strangers which mention you'), get_pconfig(local_channel(), 'system', 'permit_all_mentions'), t('This setting bypasses normal permissions'), $yes_no],
+            '$permit_all_likes' => ['permit_all_likes', t('Accept likes from strangers'), get_pconfig(local_channel(), 'system', 'permit_all_likes'), t('This setting bypasses normal permissions'), $yes_no],
             '$followed_tags' => ['followed_tags', t('Accept messages from strangers which include any of the following hashtags'), $followed, t('comma separated, do not include the #')],
             '$unless_mention_count' => ['unless_mention_count', t('Unless more than this many channels are mentioned'), $mention_count, t('0 for unlimited')],
             '$unless_tag_count' => ['unless_tag_count', t('Unless more than this many hashtags are used'), $tag_count, t('0 for unlimited')],

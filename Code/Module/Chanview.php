@@ -121,13 +121,7 @@ class Chanview extends Controller
                 dbesc(App::$poi['xchan_hash'])
             );
 
-            // if somebody followed us and we want to find out more, start
-            // by viewing their publicly accessible information.
-            // Otherwise the primary use of this page is to provide a connect
-            // button for anybody in the fediverse - which doesn't have to ask
-            // you who you are.
-
-            if ($c && intval($c[0]['abook_pending']) === 0) {
+            if ($c) {
                 $connected = true;
             }
             $channel = App::get_channel();

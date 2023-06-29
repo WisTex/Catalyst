@@ -110,6 +110,25 @@ let postSaveTimer = null;
 				$('#profile-jot-submit-left').hide();
 		}
 
+		/**
+		 * uses the jQuery file upload plugin to upload files.
+		 * It is initialized on an element with an ID of "invisible-wall-file-upload" using the .fileupload() method.
+		 * It is configured with several options passed as an object to the .fileupload() method:
+		 * url: specifies the server endpoint to which the uploaded file will be sent. It includes a PHP variable $nickname in the URL path.
+		 * dataType: specifies the expected format of the response from the server, which is JSON in this case.
+		 * dropZone: specifies the element that is used as the drop zone for the file upload. In this case, it's the element with an ID of "profile-jot-text".
+		 * maxChunkSize: specifies the maximum chunk size for chunked file uploads. It's set to 2 megabytes in this case.
+		 * add: specifies a callback function to be executed when a file is added to the queue.
+		 * In this case, the function shows a rotating icon to indicate that the upload is in progress and submits the file for uploading.
+		 * done: specifies a callback function to be executed when the upload is complete.
+		 * In this case, the function appends the file's URL to a text area with an ID of "jot-media" 
+		 * and adds the file's URL to the text editor by calling a function named addeditortext().
+		 * stop: specifies a callback function to be executed when the upload is stopped, 
+		 * either because it's completed or because it was cancelled. 
+		 * In this case, the function hides the rotating icon and calls a function named preview_post(), which previews the uploaded file in the user's post.
+		 *  
+		 */
+
 		$('#invisible-wall-file-upload').fileupload({
 			url: 'wall_attach/{{$nickname}}',
 			dataType: 'json',
@@ -122,6 +141,7 @@ let postSaveTimer = null;
 				data.submit();
 			},
 			done: function(e,data) {
+				console.log(data);
 				addeditortext(data.result.message);
 				$('#jot-media').val($('#jot-media').val() + data.result.message);
 			},
@@ -134,11 +154,10 @@ let postSaveTimer = null;
 		$('#wall-file-upload').click(function(event) { event.preventDefault(); $('#invisible-wall-file-upload').trigger('click'); return false;});
 		$('#wall-file-upload-sub').click(function(event) { event.preventDefault(); $('#invisible-wall-file-upload').trigger('click'); return false;});
 
-        // call initialization file
+		// call initialization file
         if (window.File && window.FileList && window.FileReader) {
 			DragDropUploadInit();
         }
-
 
 		$('#invisible-comment-upload').fileupload({
 			url: 'wall_attach/{{$nickname}}',
@@ -388,7 +407,14 @@ let postSaveTimer = null;
 		})
 	}
 
-
+	/**
+	 *  opens a modal window with an ID of "createdModal" 
+	 *  and listens for a click event on a button with an ID of "created-modal-OKButton". 
+	 *  When the button is clicked, it retrieves the value of an input field with an ID of "created-date" 
+	 *  and if it is not empty, it sets the value of an input field with an ID of "jot-created" 
+	 *  to the retrieved value and hides the modal window.
+	 */
+	
 	function jotGetPubDate() {
 		$('#createdModal').modal('show');
 		$('#created-modal-OKButton').on('click', function() {
@@ -399,7 +425,6 @@ let postSaveTimer = null;
 			}
 		})
 	}
-
 
 	function jotShare(id,post_type) {
 		$('#like-rotator-' + id).show();
@@ -612,17 +637,6 @@ let postSaveTimer = null;
 		timer = setTimeout(updateInit,1000);
 	}
 
-	function toggleVoting() {
-		if($('#jot-consensus').val() > 0) {
-			$('#jot-consensus').val(0);
-			$('#profile-voting, #profile-voting-sub').removeClass('fa-check-square-o').addClass('fa-square-o');
-		}
-		else {
-			$('#jot-consensus').val(1);
-			$('#profile-voting, #profile-voting-sub').removeClass('fa-square-o').addClass('fa-check-square-o');
-		}
-	}
-
 	function jotReact(id,icon) {
 		if(id && icon) {
 			$.get('{{$baseurl}}/react?f=&postid=' + id + '&emoji=' + icon);
@@ -640,7 +654,6 @@ let postSaveTimer = null;
 	    jotCheckoutStatus();
 	}
 
-
 	let initializeEmbedPhotoDialog = function () {
         $('.embed-photo-selected-photo').each(function (index) {
             $(this).removeClass('embed-photo-selected-photo');
@@ -653,6 +666,7 @@ let postSaveTimer = null;
     let choosePhotoFromAlbum = function (album) {
         $.post("embedphotos/album", {name: album},
             function(data) {
+                // alert(JSON.stringify(data));
                 if (data['status']) {
                     $('#embedPhotoModalLabel').html("{{$modalchooseimages}}");
                     $('#embedPhotoModalBodyAlbumDialog').html('\
@@ -671,10 +685,10 @@ let postSaveTimer = null;
                             let imageparent = document.getElementById($(image).parent()[0].id);
                             $(imageparent).toggleClass('embed-photo-selected-photo');
                             let href = $(imageparent).attr('href');
-                            $.post("embedphotos/photolink", {href: href},
+							$.post(href,
                                 function(ddata) {
-                                    if (ddata['status']) {
-                                        addeditortext(ddata['photolink']);
+									if (ddata['status']) {
+										addeditortext(ddata['photolink']);
 										preview_post();
                                     } else {
                                         window.console.log("{{$modalerrorlink}}" + ':' + ddata['errormsg']);
@@ -698,17 +712,19 @@ let postSaveTimer = null;
     };
 
     let getPhotoAlbumList = function () {
-        $.post("embedphotos/albumlist", {},
+        $.post("embedphotos/filelist", {},
             function(data) {
                 if (data['status']) {
                     let albums = data['albumlist']; //JSON.parse(data['albumlist']);
                     $('#embedPhotoModalLabel').html("{{$modalchoosealbum}}");
                     $('#embedPhotoModalBodyAlbumList').html('<ul class="nav nav-pills flex-column"></ul>');
-                    for(let i=0; i<albums.length; i++) {
+                    for (let i=0; i < albums.length; i++) {
                         let albumName = albums[i].text;
-			let jsAlbumName = albums[i].jstext;
-			let albumLink = '<li class="nav-item">';
-			albumLink += '<a class="nav-link" href="#" onclick="choosePhotoFromAlbum(\'' + jsAlbumName + '\'); return false;">' + albumName + '</a>';
+			            let jsAlbumName = albums[i].jstext;
+			            let albumLink = '<li class="nav-item">';
+			            albumLink += '<a class="nav-link" href="#" '
+                            + 'onclick="choosePhotoFromAlbum(\'' + jsAlbumName + '\'); return false;">'
+                            + albumName + '</a>';
                         albumLink += '</li>';
                         $('#embedPhotoModalBodyAlbumList').find('ul').append(albumLink);
                     }
@@ -722,7 +738,8 @@ let postSaveTimer = null;
         'json');
     };
 
-    //
+
+
     // initialize drag-drop
     function DragDropUploadInit() {
 
@@ -732,7 +749,6 @@ let postSaveTimer = null;
         filedrag.on("dragover", DragDropUploadFileHover);
         filedrag.on("dragleave", DragDropUploadFileHover);
         filedrag.on("drop", DragDropUploadFileSelectHandler);
-
     }
 
 	// file drag hover

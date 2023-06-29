@@ -23,6 +23,7 @@ class Manage extends Controller
             notice(t('Permission denied.') . EOL);
             return '';
         }
+        $channel = App::get_channel();
 
         Navbar::set_selected('Manage');
 
@@ -169,6 +170,15 @@ class Manage extends Controller
                 intval(local_channel()),
                 dbesc('%delegate%')
             );
+            $links = q("select * from linkid where ident = '%s' and sigtype = %s",
+                dbesc($channel['channel_hash']),
+                intval(IDLINK_RELME)
+            );
+            $linkid_str = ids_to_querystr($links,'link', true);
+            if ($linkid_str) {
+                $linkedIdentities = q("select * from xchan where (xchan_hash in ($linkid_str) and xchan_network = 'activitypub')
+                    or (xchan_url in ($linkid_str) and xchan_network in ('zot6','nomad')) ");
+            }
         }
 
         if ($delegates) {
@@ -184,9 +194,22 @@ class Manage extends Controller
             $delegates = null;
         }
 
+
+        if ($linkedIdentities) {
+            for ($x = 0; $x < count($linkedIdentities); $x++) {
+                $linkedIdentities[$x]['link'] = zid($linkedIdentities[$x]['xchan_url']);
+                $linkedIdentities[$x]['channel_name'] = $linkedIdentities[$x]['xchan_name'];
+                $linkedIdentities[$x]['delegate'] = 2;
+                $linkedIdentities[$x]['collections_label'] = t('Collection');
+            }
+        } else {
+            $linkedIdentities = null;
+        }
+
         return replace_macros(Theme::get_template('channels.tpl'), [
             '$header' => t('Channels'),
             '$msg_selected' => t('Current Channel'),
+            '$msg_linked' => t('Linked Identities'),
             '$selected' => local_channel(),
             '$desc' => t('Switch to one of your channels by selecting it.'),
             '$msg_default' => t('Default Login Channel'),
@@ -198,8 +221,10 @@ class Manage extends Controller
             '$mail_format' => t('%d new messages'),
             '$intros_format' => t('%d new introductions'),
             '$channel_usage_message' => $channel_usage_message,
+            '$remote_desc' => t('Linked Identity'),
             '$delegated_desc' => t('Delegated Channel'),
-            '$delegates' => $delegates
+            '$delegates' => $delegates,
+            '$links' => $linkedIdentities,
         ]);
     }
 }

@@ -52,8 +52,10 @@ class Head {
     public static function get_links(): string
     {
         $str = '';
-        $sources = App::$linkrel;
-        if (is_array($sources) && $sources) {
+        $sources = App::$linkrel ?? [];
+        $sources = array_merge($sources, App::$channel_links ?? []);
+
+        if ($sources) {
             foreach ($sources as $source) {
                 if (is_array($source) && $source) {
                     $str .= '<link';
@@ -89,8 +91,10 @@ class Head {
             $path = (Theme::include($script)) ? '/' . Theme::include($script) : '';
         }
 
+
+
         if ($path) {
-            $qstring = ((parse_url($path, PHP_URL_QUERY)) ? '&' : '?') . 'v=' . STD_VERSION;
+            $qstring = ((parse_url($path, PHP_URL_QUERY)) ? '&' : '?') . '_v=' . hash('md5', STD_VERSION);
             return '<link rel="stylesheet" href="' . $path_prefix . $path . $qstring . '" type="text/css" media="' . $source[1] . '">' . "\r\n";
         }
         return '';
@@ -202,7 +206,7 @@ class Head {
             $path = '/' . Theme::include($source);
         }
         if ($path) {
-            $qstring = ((parse_url($path, PHP_URL_QUERY)) ? '&' : '?') . 'v=' . STD_VERSION;
+            $qstring = ((parse_url($path, PHP_URL_QUERY)) ? '&' : '?') . '_v=' . hash('md5',STD_VERSION);
             return '<script src="' . $path_prefix . $path . $qstring . '" ></script>' . "\r\n" ;
         }
         return '';

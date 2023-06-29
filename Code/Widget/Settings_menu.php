@@ -55,7 +55,7 @@ class Settings_menu implements WidgetInterface
         ];
 
         $tabs[] = [
-            'label' => t('Manage Blocks'),
+            'label' => t('Manage blocked sites/channels'),
             'url' => z_root() . '/superblock',
             'selected' => ((argv(0) === 'superblock') ? 'active' : ''),
         ];
@@ -75,6 +75,12 @@ class Settings_menu implements WidgetInterface
             'selected' => ''
         ];
 
+        $tabs[] = [
+            'label' => t('Multifactor authentication'),
+            'url' => z_root() . '/settings/multifactor',
+            'selected' => ((argv(1) === 'multifactor') ? 'active' : ''),
+        ];
+
         if (Apps::system_app_installed(local_channel(), 'Clients')) {
             $tabs[] = [
                 'label' => t('Client apps'),
@@ -85,10 +91,33 @@ class Settings_menu implements WidgetInterface
 
         if(Apps::system_app_installed(local_channel(),'Roles')) {
           $tabs[] = [
-              'label' => t('Permission Roles'),
+              'label' => t('Permission roles'),
               'url' => z_root() . '/settings/permcats',
               'selected' => ((argv(1) === 'permcats') ? 'active' : ''),
           ];
+        }
+
+        $tabs[] = [
+            'label' => t('External Identities'),
+            'url' => z_root() . '/settings/identities',
+            'selected' => ((argv(1) === 'identities') ? 'active' : '')
+        ];
+
+        $links = q("select * from linkid where sigtype = %d and ident = '%s'",
+            intval(IDLINK_RELME),
+            dbesc($channel['channel_hash'])
+        );
+
+        $sources = q("select * from sources where src_channel_id = %d",
+            intval($channel['channel_id'])
+        );
+
+        if ($links || $sources) {
+            $tabs[] = [
+                'label' => t('Channel Sources'),
+                'url' => z_root() . '/sources',
+                'selected' => ((argv(1) === 'sources') ? 'active' : ''),
+            ];
         }
 
         return replace_macros(Theme::get_template('generic_links_widget.tpl'), [

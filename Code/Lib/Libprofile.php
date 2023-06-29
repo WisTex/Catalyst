@@ -24,7 +24,7 @@ class Libprofile
      * The channel default theme is also selected for use, unless over-riden elsewhere.
      *
      * @param string $nickname
-     * @param string $profile_guid
+     * @param string $profile (guid)
      */
 
     public static function load($nickname, $profile = '')
@@ -54,7 +54,7 @@ class Libprofile
 
         if (!$profile) {
             $r = q(
-                "SELECT abook_profile FROM abook WHERE abook_xchan = '%s' and abook_channel = '%d' limit 1",
+                "SELECT abook_profile FROM abook WHERE abook_xchan = '%s' and abook_channel = %d limit 1",
                 dbesc(($observer) ? $observer['xchan_hash'] : ''),
                 intval($channel['channel_id'])
             );
@@ -112,7 +112,7 @@ class Libprofile
             $profile_fields_basic = Channel::get_profile_fields_basic();
             $profile_fields_advanced = Channel::get_profile_fields_advanced();
 
-            $advanced = ((Features::enabled(local_channel(), 'advanced_profiles')) ? true : false);
+            $advanced = (bool)Features::enabled(local_channel(), 'advanced_profiles');
             if ($advanced) {
                 $fields = $profile_fields_advanced;
             } else {
@@ -377,6 +377,75 @@ class Libprofile
             $channel_menu .= $comanche->block($menublock);
         }
 
+        $clones = [];
+        $clonelist = '';
+        $identities = '';
+        $pconfigs = PConfig::Get($profile['uid'], 'system','identities', []);
+        $ids = q("select * from linkid where ident = '%s' and sigtype = %d",
+            dbesc($profile['channel_hash']),
+            intval(IDLINK_RELME)
+        );
+        if (PConfig::Get($profile['uid'],'system','nomadic_ids_in_profile', true)) {
+            $clonelist = Libzot::encode_locations($profile);
+        }
+        if ($clonelist) {
+            foreach ($clonelist as $clone) {
+                if (str_starts_with($clone['id_url'], z_root())) {
+                    continue;
+                }
+                $clones[] = $clone;
+            }
+        }
+        if (($ids && $pconfigs) || $clones) {
+            $identities .= '<table class="identity-table">';
+        }
+        if ($clones) {
+            foreach ($clones as $clone) {
+                $identities .= replace_macros(Theme::get_template('identity.tpl'), [
+                    '$identity' => [
+                        escape_tags($clone['host']),
+                        $clone['id_url'],
+                        'check',
+                        t('Verified'),
+                        '_green'
+                    ]
+                ]);
+            }
+        }
+        if ($ids && $pconfigs) {
+            foreach ($pconfigs as $pconfig) {
+                $matched = false;
+                foreach ($ids as $id) {
+                    if ($pconfig[1] === $id['link']) {
+                        $matched = true;
+                        $identities .= replace_macros(Theme::get_template('identity.tpl'), [
+                            '$identity' => [
+                                escape_tags($pconfig[0]),
+                                $pconfig[1],
+                                'check',
+                                t('Verified'),
+                                '_green'
+                            ]
+                        ]);
+                    }
+                }
+                if (!$matched) {
+                    $identities .= replace_macros(Theme::get_template('identity.tpl'), [
+                        '$identity' => [
+                            escape_tags($pconfig[0]),
+                            $pconfig[1],
+                            'close',
+                            t('Not verified'),
+                            '_red'
+                        ]
+                    ]);
+                }
+            }
+
+        }
+        if (($ids && $pconfigs) || $clones) {
+            $identities .= '</table>' . EOL;
+        }
         if ($zcard) {
             $tpl = Theme::get_template('profile_vcard_short.tpl');
         } else {
@@ -400,7 +469,8 @@ class Libprofile
             '$reddress' => $reddress,
             '$active' => t('Active'),
             '$activewhen' => relative_date($profile['channel_lastpost']),
-            '$rating' => '',
+            '$identities' => $identities,
+            '$ident_label' => t('Identities:'),
             '$contact_block' => $contact_block,
             '$change_photo' => t('Change your profile photo'),
             '$copyto' => t('Copy to clipboard'),
@@ -429,8 +499,8 @@ class Libprofile
 
         //  logger('gender: ' . $gender);
 
-        // This can easily get throw off if the observer language is different
-        // than the channel owner language.
+        // This can easily get thrown off if the observer language is different
+        // from the channel owner language.
 
         if (str_contains(strtolower($gender), strtolower(t('Female')))) {
             return 'venus';
@@ -458,8 +528,8 @@ class Libprofile
     {
 
 
-        // This can easily get throw off if the observer language is different
-        // than the channel owner language.
+        // This can easily get thrown off if the observer language is different
+        // from the channel owner language.
 
         if (str_contains(strtolower($pronouns), strtolower(t('She')))) {
             return 'venus';
@@ -486,7 +556,7 @@ class Libprofile
             $profile_fields_basic = Channel::get_profile_fields_basic();
             $profile_fields_advanced = Channel::get_profile_fields_advanced();
 
-            $advanced = ((Features::enabled(App::$profile['profile_uid'], 'advanced_profiles')) ? true : false);
+            $advanced = (bool)Features::enabled(App::$profile['profile_uid'], 'advanced_profiles');
             if ($advanced) {
                 $fields = $profile_fields_advanced;
             } else {
@@ -542,8 +612,9 @@ class Libprofile
                     $val = substr(App::$profile['dob'], 0, 4);
                 }
 
-                $year_bd_format = t('j F, Y');
-                $short_bd_format = t('j F');
+                // translators: 'j F, Y' produces the format '4 May, 2021'
+                $year_bd_format = t('j F, Y', 'birthday_time_format');
+                $short_bd_format = t('j F', 'short_birthday_time_format');
 
                 if (!$val) {
                     $val = ((intval(App::$profile['dob']))
@@ -553,7 +624,7 @@ class Libprofile
                 $profile['birthday'] = [t('Birthday:'), $val];
             }
 
-            if ($age = age(App::$profile['dob'], App::$profile['timezone'], '')) {
+            if ($age = age(App::$profile['dob'], App::$profile['timezone'])) {
                 $profile['age'] = [t('Age:'), $age];
             }
 
@@ -680,7 +751,7 @@ class Libprofile
 
             return replace_macros($tpl, [
                 '$title' => t('Profile'),
-                '$canlike' => (($profile['canlike']) ? true : false),
+                '$canlike' => (bool)$profile['canlike'],
                 '$likethis' => t('Like this thing'),
                 '$export' => t('Export'),
                 '$exportlink' => '', // $exportlink,

@@ -332,6 +332,9 @@ class Stream extends Controller
                     $p2 = q("SELECT oid AS parent FROM term WHERE uid = " . intval(local_channel()) . " AND ttype = $ttype AND term = '" . dbesc($cid_r[0]['xchan_name']) . "'");
 
                     $p_str = ids_to_querystr(array_merge($p1, $p2), 'parent');
+                    if (!$p_str) {
+                        $p_str = '0';
+                    }
                     $sql_extra = " AND item.parent IN ( $p_str ) ";
                 }
             }
@@ -370,15 +373,15 @@ class Stream extends Controller
         }
 
         if (!$this->updating) {
-            // The special div is needed for liveUpdate to kick in for this page.
-            // We only launch liveUpdate if you aren't filtering in some incompatible
-            // way, and also you aren't writing a comment (discovered in javascript).
 
             $maxheight = get_pconfig(local_channel(), 'system', 'stream_divmore_height');
             if (!$maxheight) {
                 $maxheight = 400;
             }
 
+            // The special div is needed for liveUpdate to kick in for this page.
+            // We only launch liveUpdate if you aren't filtering in some incompatible
+            // way, and also you aren't writing a comment (discovered in javascript).
 
             $o .= '<div id="live-stream"></div>' . "\r\n";
             $o .= "<script> let profile_uid = " . local_channel()
@@ -419,6 +422,8 @@ class Stream extends Controller
                 '$pf' => (($pf) ? intval($pf) : '0'),
                 '$distance' => (($distance) ? intval($distance) : '0'),
                 '$distance_from' => (($distance_from) ? urlencode($distance_from) : ''),
+                '$maxtags' => 0,
+                '$mintags' => 0,
             ]);
         }
 
@@ -550,7 +555,7 @@ class Stream extends Controller
 
         $seenstr = EMPTY_STR;
         if (local_channel()) {
-            $seen = PConfig::Get(local_channel(), 'system', 'seen_items', []);
+            $seen = $_SESSION['seen_items'];
             if ($seen) {
                 $seenstr = " and not item.id in (" . implode(',', $seen) . ") ";
             }
@@ -628,7 +633,7 @@ class Stream extends Controller
 					WHERE true $uids $item_normal
 					AND item.parent IN ( %s )
 					$sql_extra ",
-                    dbesc($parents_str)
+                    dbesc($parents_str ?: '0')
                 );
 
                 if ($distance) {
@@ -676,12 +681,13 @@ class Stream extends Controller
                 );
             }
 
-            $ids = ids_to_array($items, 'item_id');
-            $seen = PConfig::Get(local_channel(), 'system', 'seen_items');
+            $seen = $_SESSION['seen_items'];
             if (!$seen) {
                 $seen = [];
             }
-            $seen = array_merge($ids, $seen);
+            $ids = ids_to_array($items, 'item_id');
+            $seen = array_values(array_unique(array_merge($ids, $seen)));
+            $_SESSION['seen_items'] = $seen;
             PConfig::Set(local_channel(), 'system', 'seen_items', $seen);
         }
 

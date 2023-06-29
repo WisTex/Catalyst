@@ -57,7 +57,7 @@ class Display extends Controller
         if (!$item_hash) {
             App::$error = 404;
             notice(t('Item not found.') . EOL);
-            return;
+            return '';
         }
 
         $observer_is_owner = false;
@@ -262,6 +262,8 @@ class Display extends Controller
                 '$pf' => '0',
                 '$distance' => '0',
                 '$distance_from' => '',
+                '$maxtags' => '0',
+                '$mintags' => '0',
             ]);
 
             Head::add_link([
@@ -276,7 +278,7 @@ class Display extends Controller
         $item_normal = item_normal();
         $item_normal_update = item_normal_update();
 
-        $sql_extra = ((local_channel()) ? EMPTY_STR : item_permissions_sql(0, $observer_hash));
+        $sql_extra = item_permissions_sql(0, $observer_hash);
 
         if ($noscript_content || $this->loading) {
             $r = null;
@@ -334,7 +336,9 @@ class Display extends Controller
                 $items = q(
                     "SELECT item.*, item.id AS item_id 
 					FROM item
-					WHERE parent in ( %s ) $item_normal $sql_extra ",
+					WHERE ((uid = %d AND parent in ( %s )) OR (parent in ( %s ) $sql_extra )) $item_normal ",
+                    intval(local_channel()),
+                    dbesc($parents_str),
                     dbesc($parents_str)
                 );
                 xchan_query($items);
@@ -413,11 +417,12 @@ class Display extends Controller
 
         if (local_channel() && $items) {
             $ids = ids_to_array($items, 'item_id');
-            $seen = PConfig::Get(local_channel(), 'system', 'seen_items');
+            $seen = $_SESSION['seen_items'];
             if (!$seen) {
                 $seen = [];
             }
-            $seen = array_unique(array_merge($ids, $seen));
+            $seen = array_values(array_unique(array_merge($ids, $seen)));
+            $_SESSION['seen_items'] = $seen;
             PConfig::Set(local_channel(), 'system', 'seen_items', $seen);
         }
 

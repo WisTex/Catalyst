@@ -31,7 +31,7 @@ class Pin extends Controller
     public function post()
     {
 
-        $item_id = intval($_POST['id']);
+        $item_id = intval(str_replace('pin-', '', $_POST['id']));
 
         if ($item_id <= 0) {
             http_status_exit(404, 'Not found');
@@ -54,7 +54,7 @@ class Pin extends Controller
                 $narr = [];
                 foreach ($pinned as $p) {
                     if ($p !== $r[0]['mid']) {
-                        $narr[] = $r[0]['mid'];
+                        $narr[] = $p;
                     }
                 }
             } else {

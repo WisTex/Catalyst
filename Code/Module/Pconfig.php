@@ -115,14 +115,14 @@ class Pconfig extends Controller
         $o .= '<input type="hidden" name="k" value="' . $k . '" />';
 
 
-        if (strpos($v, "\n")) {
+        if (is_string($v) && strpos($v, "\n")) {
             $o .= '<textarea name="v" >' . escape_tags($v) . '</textarea>';
         } else {
             if (is_array($v)) {
                 $o .= '<code><pre>' . "\n" . print_array($v) . '</pre></code>';
-                $o .= '<input type="hidden" name="v" value="' . serialise($v) . '" />';
+                $o .= '<input type="hidden" class="form-control" name="v" value="' . serialise($v) . '" />';
             } else {
-                $o .= '<input type="text" name="v" value="' . escape_tags($v) . '" />';
+                $o .= '<input type="text" class="form-control" name="v" value="' . escape_tags($v) . '" />';
             }
         }
         $o .= EOL . EOL;

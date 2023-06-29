@@ -3,7 +3,9 @@
 namespace Code\Web;
 
 use App;
+use Code\Lib\Activity;
 use Code\Lib\Channel;
+use Code\Lib\PConfig;
 use Code\Extend\Hook;
 
 class WebServer
@@ -181,11 +183,20 @@ class WebServer
          */
 
         if (( App::$module === 'channel' ) && argc() > 1) {
+            $channel = Channel::from_username(argv(1));
+            if ($channel) {
+                $nomadicIds = Activity::nomadic_locations(['author_xchan' => $channel['channel_hash']]);
+                $linkedIds = PConfig::Get($channel['channel_id'],'system','identities', []);
+            }
             App::$channel_links = [
                 [
                     'rel'  => 'jrd',
                     'type' => 'application/jrd+json',
                     'href'  => z_root() . '/.well-known/webfinger?f=&resource=acct%3A' . argv(1) . '%40' . App::get_hostname()
+                ],
+                [
+                    'rel' => 'me',
+                    'href' => z_root() . '/channel/' . argv(1)
                 ],
 
                 [
@@ -213,10 +224,30 @@ class WebServer
                 ]
             ];
 
+            if (isset($nomadicIds)) {
+                foreach ($nomadicIds as $self) {
+                    if ($self['hubloc_url'] !== z_root()) {
+                        App::$channel_links[] = [
+                            'rel' => 'me',
+                            'href' => $self['hubloc_id_url']
+                        ];
+                    }
+                }
+            }
+
+            if ($linkedIds) {
+                foreach ($linkedIds as $self) {
+                    App::$channel_links[] = [
+                        'rel' => 'me',
+                        'href' => $self[1]
+                    ];
+                }
+            }
+
             $x = [ 'channel_address' => argv(1), 'channel_links' => App::$channel_links ];
             Hook::call('channel_links', $x);
             App::$channel_links = $x['channel_links'];
-            header('Link: ' . App::get_channel_links());
+            header('Link: ' . App::get_channel_links_header());
         }
     }
 

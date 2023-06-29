@@ -73,6 +73,24 @@ class Activity
         return $x;
     }
 
+    public static function fetch_local($url, $portable_id) {
+        $sql_extra = item_permissions_sql(0, $portable_id);
+        $item_normal = item_normal();
+
+        // Find the original object
+        $j = q(
+            "select *, id as item_id from item where mid = '%s' and item_wall = 1 $item_normal $sql_extra",
+            dbesc($url)
+        );
+        if ($j) {
+            xchan_query($j, true);
+            $items = fetch_post_tags($j);
+        }
+        if ($items) {
+            return self::encode_item(array_shift($items), true);
+        }
+        return false;
+    }
 
     public static function fetch($url, $channel = null, $must_verify = false, $debug = false)
     {
@@ -122,8 +140,16 @@ class Activity
 
         logger('fetch_actual: ' . $url, LOGGER_DEBUG);
 
+        $default_accept_header = 'application/activity+json, application/x-zot-activity+json, application/ld+json; profile="https://www.w3.org/ns/activitystreams"';
+        
+        if ($channel) {
+            $accept_header = PConfig::Get($channel['channel_id'],'system','accept_header');
+        }
+        if (!$accept_header) {
+            $accept_header = Config::Get('system', 'accept_header', $default_accept_header);
+        }
         $headers = [
-            'Accept' => 'application/activity+json, application/x-zot-activity+json, application/ld+json; profile="https://www.w3.org/ns/activitystreams"',
+            'Accept' => $accept_header,
             'Host' => $parsed['host'],
             'Date' => datetime_convert('UTC', 'UTC', 'now', 'D, d M Y H:i:s \\G\\M\\T'),
             '(request-target)' => 'get ' . get_request_string($url)
@@ -132,7 +158,7 @@ class Activity
         if (isset($token)) {
             $headers['Authorization'] = 'Bearer ' . $token;
         }
-        $h = HTTPSig::create_sig($headers, $channel['channel_prvkey'], Channel::url($channel));
+        $h = HTTPSig::create_sig($headers, $channel['channel_prvkey'], Channel::keyId($channel));
         $x = Url::get($url, ['headers' => $h]);
 
         if ($x['success']) {
@@ -620,7 +646,7 @@ class Activity
         if (array_key_exists('iconfig', $item) && is_array($item['iconfig'])) {
             foreach ($item['iconfig'] as $att) {
                 if ($att['sharing']) {
-                    $ret[] = ['type' => 'PropertyValue', 'name' => 'nomad.' . $att['cat'] . '.' . $att['k'], 'value' => unserialise($att['v'])];
+                    $ret[] = ['type' => 'Note', 'name' => 'nomad.' . $att['cat'] . '.' . $att['k'], 'content' => unserialise($att['v'])];
                 }
             }
         }
@@ -641,13 +667,13 @@ class Activity
             }
             foreach ($ptr as $att) {
                 $entry = [];
-                if ($att['type'] === 'PropertyValue') {
+                if ($att['type'] === 'Note') {
                     if (array_key_exists('name', $att) && $att['name']) {
                         $key = explode('.', $att['name']);
                         if (count($key) === 3 && in_array($key[0], ['nomad', 'zot'])) {
                             $entry['cat'] = $key[1];
                             $entry['k'] = $key[2];
-                            $entry['v'] = $att['value'];
+                            $entry['v'] = $att['content'];
                             $entry['sharing'] = '1';
                             $ret[] = $entry;
                         }
@@ -698,8 +724,6 @@ class Activity
                     $ret[] = $entry;
                 }
             }
-        } elseif (isset($obj['attachment']) && is_string($obj['attachment'])) {
-            btlogger('not an array: ' . $obj['attachment']);
         }
 
         return $ret;
@@ -1349,7 +1373,9 @@ class Activity
                         // We could alternatively supply the correct attachment info when item is saved, but by replacing here we will pick up
                         // any "per-post" or manual changes to the image alt-text before sending.
 
-                        if ((isset($activity['attachment'][$pc]['href']) && str_contains($img[0]['url'], str_replace('/attach/', '/photo/', $activity['attachment'][$pc]['href']))) || (isset($activity['attachment'][$pc]['url']) && $activity['attachment'][$pc]['url'] === $img[0]['url'])) {
+                        if ((isset($activity['attachment'][$pc]['href'])
+                                && str_contains($img[0]['url'], str_replace('/attach/', '/photo/', $activity['attachment'][$pc]['href'])))
+                            || (isset($activity['attachment'][$pc]['url']) && $activity['attachment'][$pc]['url'] === $img[0]['url'])) {
                             // if it's already there, replace it with our alt-text aware version
                             $activity['attachment'][$pc] = $img[0];
                             $already_added = true;
@@ -1633,14 +1659,14 @@ class Activity
             $ret['location'] = ['type' => 'Place', 'name' => $p['channel_location']];
         }
 
-        $ret['tag'] = [['type' => 'PropertyValue', 'name' => 'Protocol', 'value' => 'zot6']];
-        $ret['tag'][] = ['type' => 'PropertyValue', 'name' => 'Protocol', 'value' => 'nomad'];
+        $ret['tag'] = [['type' => 'Note', 'name' => 'Protocol', 'content' => 'zot6']];
+        $ret['tag'][] = ['type' => 'Note', 'name' => 'Protocol', 'content' => 'nomad'];
 
         if ($activitypub && get_config('system', 'activitypub', ACTIVITYPUB_ENABLED)) {
             if ($c) {
                 if (get_pconfig($c['channel_id'], 'system', 'activitypub', ACTIVITYPUB_ENABLED)) {
                     $ret['inbox'] = z_root() . '/inbox/' . $c['channel_address'];
-                    $ret['tag'][] = ['type' => 'PropertyValue', 'name' => 'Protocol', 'value' => 'activitypub'];
+                    $ret['tag'][] = ['type' => 'Note', 'name' => 'Protocol', 'content' => 'activitypub'];
                 } else {
                     $ret['inbox'] = null;
                 }
@@ -1747,7 +1773,7 @@ class Activity
                                 if ($key === 'dob') {
                                     $key = 'birthday';
                                 }
-                                $ret['attachment'][] = ['type' => 'PropertyValue', 'name' => $key, 'value' => $dp[0][$k]];
+                                $ret['attachment'][] = ['type' => 'Note', 'name' => $key, 'content' => $dp[0][$k]];
                             }
                         }
                         if ($dp[0]['keywords']) {
@@ -1941,12 +1967,7 @@ class Activity
 
         $contact = null;
         $their_follow_id = null;
-
-        if (intval($channel['channel_system'])) {
-            // The system channel ignores all follow requests
-            return;
-        }
-
+        
         /*
          *
          * if $act->type === 'Follow', actor is now following $channel
@@ -2007,6 +2028,10 @@ class Activity
 
                     set_abconfig($channel['channel_id'], $person_obj['id'], 'activitypub', 'their_follow_id', $their_follow_id);
                     set_abconfig($channel['channel_id'], $person_obj['id'], 'activitypub', 'their_follow_type', $act->type);
+                    // In case they unfollowed us and followed again, reset their permissions to show that we're connected again. 
+                    if ($their_perms) {
+                        AbConfig::Set($channel['channel_id'], $person_obj['id'], 'system', 'their_perms', $their_perms);
+                    }
                     Run::Summon(['Notifier', 'permissions_accept', $contact['abook_id']]);
                     return;
 
@@ -2082,7 +2107,7 @@ class Activity
 
         $closeness = PConfig::Get($channel['channel_id'], 'system', 'new_abook_closeness', 80);
 
-        $r = abook_store_lowlevel(
+        $abook_stored = abook_store_lowlevel(
             [
                 'abook_account' => intval($channel['channel_account_id']),
                 'abook_channel' => intval($channel['channel_id']),
@@ -2105,8 +2130,13 @@ class Activity
             AbConfig::Set($channel['channel_id'], $ret['xchan_hash'], 'system', 'their_perms', $their_perms);
         }
 
+        // not widely used: save an intro message if it's here.
+        $content = self::get_content($act, false);
+        if  ($content['content']) {
+            XConfig::Set($ret['xchan_hash'], 'system', 'intro_text', $content['content']);
+        }
 
-        if ($r) {
+        if ($abook_stored) {
             logger("New ActivityPub follower for {$channel['channel_name']}");
 
             $new_connection = q(
@@ -2383,9 +2413,9 @@ class Activity
                         }
                     }
                 }
-                if (is_array($t) && isset($t['type']) && $t['type'] === 'PropertyValue') {
-                    if (isset($t['name']) && isset($t['value']) && $t['name'] === 'Protocol') {
-                        self::update_protocols($url, trim($t['value']));
+                if (is_array($t) && isset($t['type']) && $t['type'] === 'Note') {
+                    if (isset($t['name']) && isset($t['content']) && $t['name'] === 'Protocol') {
+                        self::update_protocols($url, trim($t['content']));
                     }
                 }
             }
@@ -2619,14 +2649,15 @@ class Activity
             dbesc((is_array($act->obj)) ? $act->obj['id'] : $act->obj),
             intval($channel['channel_id'])
         );
-
+    
         if (!$r) {
             return;
         }
 
         if (in_array($observer, [$r[0]['author_xchan'], $r[0]['owner_xchan']])) {
-            drop_item($r[0]['id']);
-        } elseif (in_array($act->actor['id'], [$r[0]['author_xchan'], $r[0]['owner_xchan']])) {
+            drop_item($r[0]['id'], observer_hash: $observer);
+        }
+        elseif (in_array($act->actor['id'], [$r[0]['author_xchan'], $r[0]['owner_xchan']])) {
             drop_item($r[0]['id']);
         }
     }
@@ -3070,14 +3101,22 @@ class Activity
         }
 
         // For the special snowflakes who can't figure out how to use attachments.
-
+        $misskeyquotefound = [];
         foreach ( ['quoteUrl', 'quoteUri', '_misskey_quote'] as $quote) {
             $quote_url = $act->get_property_obj($quote);
             if ($quote_url) {
+                if (in_array($quote_url, $misskeyquotefound)) {
+                    continue;
+                }
                 $s = self::get_quote($quote_url,$s);
+                $misskeyquotefound[] = $quote_url;
             }
             elseif ($act->objprop($quote)) {
+                if (in_array($act->obj[$quote], $misskeyquotefound)) {
+                    continue;
+                }
                 $s = self::get_quote($act->obj[$quote],$s);
+                $misskeyquotefound[] = $act->obj[$quote];
             }
         }
 
@@ -3665,13 +3704,19 @@ class Activity
             $item['item_private'] = 2;
         }
 
+        if (Tombstone::check($item['mid'], $channel['channel_id'])
+                || Tombstone::check($item['parent_mid'], $channel['channel_id'])) {
+            logger('tombstone: post was deleted. Ignoring update.');
+            return;
+        }
+    
         if ($item['parent_mid'] && $item['parent_mid'] !== $item['mid']) {
             $is_child_node = true;
         }
 
         $allowed = false;
         $reason = ['init'];
-
+        $isMail = (bool) (intval($item['item_private']) === 2);
         if ($is_child_node) {
             $parent_item = q(
                 "select * from item where mid = '%s' and uid = %d",
@@ -3681,7 +3726,7 @@ class Activity
             if ($parent_item) {
                 $parent_item = array_shift($parent_item);
             }
-            if ($parent_item && $parent_item['item_wall']) {
+            if ($parent_item && $parent_item['item_wall'] && intval($parent_item['item_thread_top'])) {
                 // set the owner to the owner of the parent
                 $item['owner_xchan'] = $parent_item['owner_xchan'];
 
@@ -3738,9 +3783,8 @@ class Activity
                     $commentApproval?->Reject();
                     return;
                 }
-
-
-            } else {
+            }
+            else {
                 // By default, if we allow you to send_stream and comments and this is a comment, it is allowed.
                 // A side effect of this action is that if you take away send_stream permission, comments to those
                 // posts you previously allowed will still be accepted. It is possible but might be difficult to fix this.
@@ -3753,7 +3797,7 @@ class Activity
                     }
                 }
                 else {
-                    $allowed = !Config::Get('system', 'use_fep5624');
+                    $allowed = !(bool) Config::Get('system', 'use_fep5624');
                 }
 
                 // reject public stream comments that weren't sent by the conversation owner
@@ -3766,7 +3810,7 @@ class Activity
             }
         }
         else {
-            if (perm_is_allowed($channel['channel_id'], $observer_hash, 'send_stream') || ($is_system && $pubstream)) {
+            if ((!$isMail) && (perm_is_allowed($channel['channel_id'], $observer_hash, 'send_stream') || ($is_system && $pubstream))) {
                 logger('allowed: permission allowed', LOGGER_DATA);
                 $allowed = true;
             }
@@ -3788,9 +3832,11 @@ class Activity
             }
         }
 
-        if (intval($item['item_private']) === 2) {
-            if (!perm_is_allowed($channel['channel_id'], $observer_hash, 'post_mail')) {
-                $allowed = false;
+        if ($isMail) {
+            $allowed = perm_is_allowed($channel['channel_id'], $observer_hash, 'post_mail');
+            if (!$allowed) {
+                logger('mail permission denied for "' . $observer_hash . '" ');
+                $reason[] = 'mail permission';
             }
         }
 
@@ -3876,10 +3922,16 @@ class Activity
             intval($channel['channel_id'])
         );
 
+        $isFilteredByChannel = !post_is_importable($channel['channel_id'], $item, $abook);
 
-        if (!post_is_importable($channel['channel_id'], $item, $abook)) {
-            logger('post is filtered');
-            return;
+        if ($isFilteredByChannel) {
+            if (PConfig::Get($channel['channel_id'], 'system','filter_moderate')) {
+                $item['item_blocked'] = ITEM_MODERATED;
+            }
+            else {
+                logger('post is filtered');
+                return;
+            }
         }
 
         $maxlen = get_max_import_size();
@@ -3923,7 +3975,7 @@ class Activity
                             $parent_item = array_shift($parent_item);
                         }
                     } else {
-                        logger('no parent');
+                        logger('no parent: ' . $item['mid']);
                         return;
                     }
                 }
@@ -3960,6 +4012,18 @@ class Activity
                     $item['allow_gid'] = $item['deny_cid'] = $item['deny_gid'] = '';
                 }
             }
+
+            // private conversation, but this comment went rogue and was published publicly
+            // hide it from everybody except the channel owner
+
+            if (intval($parent_item['item_private'])) {
+                if (!intval($item['item_private'])) {
+                    $item['item_private'] = intval($parent_item['item_private']);
+                    $item['allow_cid'] = '<' . $channel['channel_hash'] . '>';
+                    $item['allow_gid'] = $item['deny_cid'] = $item['deny_gid'] = '';
+                }
+            }
+
         }
 
         self::rewrite_mentions($item);
@@ -4029,6 +4093,7 @@ class Activity
 //      }
 
         if (is_array($x) && $x['item_id']) {
+            tag_deliver($channel['channel_id'], $x['item_id']);
             if ($is_child_node) {
                 if ($item['owner_xchan'] === $channel['channel_hash']) {
                     // We are the owner of this conversation, so send all received comments back downstream
@@ -4055,7 +4120,7 @@ class Activity
         $allowed = perm_is_allowed($channel['channel_id'], $item['author_xchan'], 'post_comments');
 
         // Allow likes from strangers if permitted to do so. These are difficult (but not impossible) to spam.
-        if ($item['verb'] === 'Like' && PConfig::Get($channel['channel_id'], 'system', 'permit_all_likes', true)) {
+        if ($item['verb'] === 'Like' && PConfig::Get($channel['channel_id'], 'system', 'permit_all_likes') && $item['obj_type'] === 'Note') {
             $allowed = true;
         }
 
@@ -4149,6 +4214,8 @@ class Activity
                 break;
             }
 
+            logger('decoded_note: ' . print_r($item,true), LOGGER_DATA);
+
             $hookinfo = [
                 'activity' => $activity,
                 'item' => $item
@@ -4179,7 +4246,7 @@ class Activity
             $current_item = $item;
         }
 
-        if ($conversation && $conversation[0]['item']['mid'] === $conversation[0]['item']['parent_md']) {
+        if ($conversation && $conversation[0]['item']['mid'] === $conversation[0]['item']['parent_mid']) {
             foreach ($conversation as $post) {
                 if ($post['activity']->is_valid()) {
                     self::store($channel, $observer_hash, $post['activity'], $post['item'], false);
@@ -4286,7 +4353,7 @@ class Activity
         return false;
     }
 
-    // check for the existence of existing media link in body
+    // check for the existence of existing share in body
 
     public static function share_not_in_body($body)
     {
@@ -4594,31 +4661,27 @@ class Activity
     {
         return ['@context' => [
             ACTIVITYSTREAMS_JSONLD_REV,
-            'https://w3id.org/security/v1',
-            'https://www.w3.org/ns/did/v1',
-            'https://w3id.org/security/data-integrity/v1',
+           'https://w3id.org/security/v1',
+        //    'https://www.w3.org/ns/did/v1',
+        //    'https://w3id.org/security/data-integrity/v1',
             self::ap_schema()
         ]];
     }
 
     public static function ap_schema()
     {
-
         return [
             'nomad' => z_root() . '/apschema#',
             'toot' => 'http://joinmastodon.org/ns#',
-            'schema' => 'http://schema.org#',
             'litepub' => 'http://litepub.social/ns#',
             'sm' => 'http://smithereen.software/ns#',
-            'fep' => 'https://codeberg.org/fediverse/fep#',
+         //   'fep' => 'https://codeberg.org/fediverse/fep#',
             'manuallyApprovesFollowers' => 'as:manuallyApprovesFollowers',
             'oauthRegistrationEndpoint' => 'litepub:oauthRegistrationEndpoint',
             'sensitive' => 'as:sensitive',
             'movedTo' => 'as:movedTo',
             'alsoKnownAs' => 'as:alsoKnownAs',
             'EmojiReact' => 'as:EmojiReact',
-            'PropertyValue' => 'schema:PropertyValue',
-            'value' => 'schema:value',
             'discoverable' => 'toot:discoverable',
             'wall' => 'sm:wall',
             'capabilities' => 'litepub:capabilities',
@@ -4626,7 +4689,7 @@ class Activity
             'Hashtag' => 'as:Hashtag',
             'canReply' => 'toot:canReply',
             'approval' => 'toot:approval',
-            'Identity' => 'fep:Identity',
+         //   'Identity' => 'fep:Identity',
             'isContainedConversation' => 'nomad:isContainedConversation',
             'conversation' => 'nomad:conversation',
             'commentPolicy' => 'nomad:commentPolicy',

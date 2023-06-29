@@ -152,6 +152,8 @@ class Pubstream extends Controller
                 '$pf' => '0',
                 '$distance' => (($distance) ? intval($distance) : '0'),
                 '$distance_from' => (($distance_from) ? urlencode($distance_from) : ''),
+                '$maxtags' => '0',
+                '$mintags' => '0',
             ));
         }
 
@@ -279,11 +281,12 @@ class Pubstream extends Controller
 
         if ($mid && local_channel()) {
             $ids = ids_to_array($items, 'item_id');
-            $seen = PConfig::Get(local_channel(), 'system', 'seen_items', []);
+            $seen = $_SESSION['seen_items'];
             if (!$seen) {
                 $seen = [];
             }
-            $seen = array_merge($ids, $seen);
+            $seen = array_values(array_unique(array_merge($ids, $seen)));
+            $_SESSION['seen_items'] = $seen;
             PConfig::Set(local_channel(), 'system', 'seen_items', $seen);
         }
 

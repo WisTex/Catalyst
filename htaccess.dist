@@ -1,6 +1,7 @@
 Options -Indexes
 AddType application/x-java-archive .jar
 AddType audio/ogg .oga
+CGIPassAuth On
 #SSLCipherSuite HIGH:AES256-SHA:AES128-SHA:RC4:!aNULL:!eNULL:!EDH
 
 # don't allow any web access to logfiles, even after rotation/compression
@@ -29,6 +30,6 @@ AddType audio/ogg .oga
 
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^(.*)$ index.php?req=$1 [E=REMOTE_USER:%{HTTP:Authorization},L,QSA]
+  RewriteRule ^(.*)$ index.php?req=$1 "[E=REMOTE_USER:%{HTTP:Authorization},B= ?,L,QSA]"
 </IfModule>
 

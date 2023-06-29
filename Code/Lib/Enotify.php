@@ -21,7 +21,7 @@ class Enotify
      * @param array $params an associative array with:
      *  * \e string \b from_xchan sender xchan hash
      *  * \e string \b to_xchan recipient xchan hash
-     *  * \e array \b item an assoziative array
+     *  * \e array \b item an associative array
      *  * \e int \b type one of the NOTIFY_* constants from boot.php
      *  * \e string \b link
      *  * \e string \b parent_mid
@@ -142,10 +142,10 @@ class Enotify
 
             if ($params['item']['mid'] === $params['item']['parent_mid']) {
                 $preamble = sprintf(t('%1$s sent you a new private message at %2$s.'), $sender['xchan_name'], $sitename);
-                $epreamble = sprintf(t('%1$s sent you %2$s.'), '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]', '[zrl=$itemlink]' . t('a private message') . '[/zrl]');
+                $epreamble = sprintf(t('%1$s sent you %2$s.'), '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]', '[zrl=$itemlink]' . t('a private message') . '[/zrl]');
             } else {
                 $preamble = sprintf(t('%1$s replied to a private message at %2$s.'), $sender['xchan_name'], $sitename);
-                $epreamble = sprintf(t('%1$s replied to %2$s.'), '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]', '[zrl=$itemlink]' . t('a private message') . '[/zrl]');
+                $epreamble = sprintf(t('%1$s replied to %2$s.'), '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]', '[zrl=$itemlink]' . t('a private message') . '[/zrl]');
             }
             $sitelink = t('Please visit %s to view and/or reply to your private messages.');
 
@@ -165,7 +165,16 @@ class Enotify
 
             $itemlink = $params['link'];
 
-            $action = t('commented on');
+            if ($params['type'] === NOTIFY_RESHARE) {
+                $action = t('repeated');
+                if ($sender['xchan_type'] == XCHAN_TYPE_GROUP) {
+                    pop_lang();
+                    return;
+                }
+            }
+            else {
+                $action = t('commented on');
+            }
 
             if (array_key_exists('item', $params) && in_array($params['item']['verb'], [ACTIVITY_LIKE, ACTIVITY_DISLIKE])) {
                 if (!($vnotify & VNOTIFY_LIKE)) {
@@ -222,10 +231,13 @@ class Enotify
 
             //$possess_desc = str_replace('<!item_type!>',$possess_desc);
 
+            // Put zero-width spaces between the links and the sender name in case they contain parens,
+            // as these will be interpreted as markdown links when rendered. 
+    
             // "a post"
             $dest_str = sprintf(
                 t('%1$s %2$s [zrl=%3$s]a %4$s[/zrl]'),
-                '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]',
+                '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]',
                 $action,
                 $itemlink,
                 $item_post_type
@@ -235,7 +247,7 @@ class Enotify
             if ($p) {
                 $dest_str = sprintf(
                     t('%1$s %2$s [zrl=%3$s]%4$s\'s %5$s[/zrl]'),
-                    '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]',
+                    '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]',
                     $action,
                     $itemlink,
                     $p[0]['author']['xchan_name'],
@@ -247,7 +259,7 @@ class Enotify
             if ($p[0]['owner']['xchan_name'] == $p[0]['author']['xchan_name'] && intval($p[0]['item_wall'])) {
                 $dest_str = sprintf(
                     t('%1$s %2$s [zrl=%3$s]your %4$s[/zrl]'),
-                    '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]',
+                    '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]',
                     $action,
                     $itemlink,
                     $item_post_type
@@ -337,7 +349,7 @@ class Enotify
             if ($p[0]['owner']['xchan_name'] == $p[0]['author']['xchan_name'] && intval($p[0]['item_wall'])) {
                 $dest_str = sprintf(
                     t('%1$s liked [zrl=%2$s]your %3$s[/zrl]'),
-                    '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]',
+                    '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]',
                     $itemlink,
                     $item_post_type
                 );
@@ -373,7 +385,7 @@ class Enotify
 
             $epreamble = sprintf(
                 t('%1$s posted to [zrl=%2$s]your wall[/zrl]'),
-                '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]',
+                '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]',
                 $itemlink
             );
 
@@ -410,7 +422,7 @@ class Enotify
             $preamble = sprintf(t('%1$s tagged you at %2$s'), $sender['xchan_name'], $sitename);
             $epreamble = sprintf(
                 t('%1$s [zrl=%2$s]tagged you[/zrl].'),
-                '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]',
+                '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]',
                 $params['link']
             );
 
@@ -425,7 +437,7 @@ class Enotify
             $preamble = sprintf(t('%1$s poked you at %2$s'), $sender['xchan_name'], $sitename);
             $epreamble = sprintf(
                 t('%1$s [zrl=%2$s]poked you[/zrl].'),
-                '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]',
+                '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]',
                 $params['link']
             );
 
@@ -444,7 +456,7 @@ class Enotify
             $preamble = sprintf(t('%1$s tagged your post at %2$s'), $sender['xchan_name'], $sitename);
             $epreamble = sprintf(
                 t('%1$s tagged [zrl=%2$s]your post[/zrl]'),
-                '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]',
+                '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]',
                 $itemlink
             );
 
@@ -460,7 +472,7 @@ class Enotify
             $epreamble = sprintf(
                 t('You\'ve received [zrl=%1$s]a new connection request[/zrl] from %2$s.'),
                 $siteurl . '/connections/ifpending',
-                '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]'
+                '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]'
             );
             $body = sprintf(t('You may visit their profile at %s'), $sender['xchan_url']);
 
@@ -476,8 +488,8 @@ class Enotify
             $epreamble = sprintf(
                 t('You\'ve received [zrl=%1$s]a friend suggestion[/zrl] for %2$s from %3$s.'),
                 $itemlink,
-                '[zrl=' . $params['item']['url'] . ']' . $params['item']['name'] . '[/zrl]',
-                '[zrl=' . $sender['xchan_url'] . ']' . $sender['xchan_name'] . '[/zrl]'
+                '[zrl=' . $params['item']['url'] . ']' . html_entity_decode('&#8203;') . $params['item']['name'] . '[/zrl]',
+                '[zrl=' . $sender['xchan_url'] . ']' . html_entity_decode('&#8203;') . $sender['xchan_name'] . '[/zrl]'
             );
 
             $body = t('Name:') . ' ' . $params['item']['name'] . "\n";
@@ -636,14 +648,7 @@ class Enotify
 
         $itemlink = z_root() . '/notify/view/' . $notify_id;
         $msg = str_replace('$itemlink', $itemlink, $epreamble);
-
-        // This is a wretched hack, but we don't want to duplicate all the preamble variations,
-        // and we also don't want to screw up a translation.
-
-        if ((App::$language === 'en' || (! App::$language)) && strpos($msg, ', ')) {
-            $msg = substr($msg, strpos($msg, ', ') + 1);
-        }
-
+        
         $r = q(
             "update notify set msg = '%s' where id = %d and uid = %d",
             dbesc($msg),
