@@ -1,3 +1,5 @@
+# WisTex Catalyst
+
 An open source fediverse server with a long history of innovation. See [FEATURES](https://codeberg.org/streams/streams/src/branch/dev/FEATURES.md).
 
 This software is public domain and is not associated with any consumer brand.
