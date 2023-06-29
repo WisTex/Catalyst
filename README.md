@@ -6,6 +6,10 @@ The eventual goal is to create a stand-alone product called Catalyst which inclu
 
 Right now this is just a playground for experimenting with the platform, and is not ready for production.
 
+# License
+
+This version of Streams, called WisTex Catalyst, is MIT licensed. Changes copyright WisTex TechSero Ltd. Co.
+
 ## About Streams 
 
 An open source fediverse server with a long history of innovation. See [FEATURES](https://codeberg.org/streams/streams/src/branch/dev/FEATURES.md).
