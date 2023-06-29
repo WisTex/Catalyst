@@ -81,13 +81,31 @@ class Help extends Controller
             killme();
         }
         $heading = '';
-        if (argc() === 1) {
 
-            $files = self::listdir('doc');
+
+        if (argc() === 1) {
+            $cmd = 'doc';
+        }
+        else {
+            $cmd = str_replace('help/', 'doc/', App::$cmd);
+        }
+
+        if (! is_dir($cmd)) {
+            $content = get_help_content();
+        }
+        else {
+            $files = self::listdir($cmd);
 
             if ($files) {
+                usort($files, ['self', 'usort_basename']);
                 foreach ($files as $file) {
+                    $language = '';
+
                     if ((!strpos($file, '/site/')) && file_exists(str_replace('doc/', 'doc/site/', $file))) {
+                        $file = str_replace('doc/', 'doc/site/', $file);
+                    }
+
+                    if (!is_dir($file) && !str_contains(z_mime_content_type($file), 'text')) {
                         continue;
                     }
                     if (strpos($file, 'README')) {
@@ -95,24 +113,21 @@ class Help extends Controller
                     }
                     if (preg_match('/\/(..|..-..)\//', $file, $matches)) {
                         $language = $matches[1];
-                    } else {
-                        $language = t('Unknown language');
-                    }
-                    if ($language === substr(App::$language, 0, 2)) {
-                        $language = '';
+
+                        if ($language === substr(App::$language, 0, 2)) {
+                            $language = '';
+                        }
                     }
 
-                    $link = str_replace(['doc/', '.mc'], ['help/', ''], $file);
+                    $link = str_replace(['doc/', '.mc', '.txt'], ['help/', '', ''], $file);
+                    $displayName = str_replace('_', ' ', $link);
                     if (str_contains($link, '/global/') || str_contains($link, '/media/')) {
                         continue;
                     }
-                    $content .= '<div class="nav-pills"><a href="' . $link . '">' . ucfirst(basename($link)) . '</a></div>' . (($language) ? " [$language]" : '') . EOL;
+                    $content .= '<div class="nav-pills"><a href="' . $link . '">' . ucfirst(basename($displayName)) . '</a>' . (($language) ? " [$language]" : '') . '</div>' . EOL;
                 }
             }
-        } else {
-            $content = get_help_content();
         }
-
 
         return replace_macros(Theme::get_template('help.tpl'), [
             '$title' => t('$Projectname Documentation'),
@@ -123,6 +138,10 @@ class Help extends Controller
         ]);
     }
 
+    public static function usort_basename($a,$b) {
+        return strcasecmp(basename($a), basename($b));
+    }
+
     public static function listdir($path)
     {
         $results = [];
@@ -130,14 +149,18 @@ class Help extends Controller
         if (!$handle) {
             return $results;
         }
+        if ($path === 'doc') {
+            return ['doc/guide', 'doc/develop', 'doc/site'];
+        }
         while (false !== ($file = readdir($handle))) {
             if ($file === '.' || $file === '..') {
                 continue;
             }
-            if (is_dir($path . '/' . $file)) {
-                $results = array_merge($results, self::listdir($path . '/' . $file));
+            $fileName = $path . '/' . $file;
+            if (is_dir($fileName)) {
+                $results = array_merge($results, self::listdir($fileName));
             } else {
-                $results[] = $path . '/' . $file;
+                $results[] = $fileName;
             }
         }
         closedir($handle);

@@ -561,8 +561,6 @@ App::$strings['words one per line or #tags or /patterns/ or lang=xx, leave blank
 App::$strings['Do not import Public stream posts with this text'] = '';
 App::$strings['Login on Homepage'] = '';
 App::$strings['Present a login box to visitors on the home page if no other content has been configured.'] = '';
-App::$strings['Enable context help'] = '';
-App::$strings['Display contextual help for the current page when the help button is pressed.'] = '';
 App::$strings['Reply-to email address for system generated email.'] = '';
 App::$strings['Sender (From) email address for system generated email.'] = '';
 App::$strings['Name of email sender for system generated email.'] = '';
@@ -2061,7 +2059,7 @@ App::$strings['%d invitation available'] = [
 App::$strings['Find Channels'] = '';
 App::$strings['Enter name or interest'] = '';
 App::$strings['Connect/Follow'] = '';
-App::$strings['Examples: Robert Morgenstein, Fishing'] = '';
+App::$strings['Examples: Robert Walsh, Fishing'] = '';
 App::$strings['Advanced example: name=fred and country=iceland'] = '';
 App::$strings['Friend zoom in/out'] = '';
 App::$strings['Ignore/Hide'] = '';

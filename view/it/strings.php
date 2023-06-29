@@ -583,8 +583,6 @@ App::$strings["Allow anybody on the internet to access the Public streams"] = "P
 App::$strings["Disable to require authentication before viewing. Warning: this content is unmoderated."] = "Disabilita per richiedere di autenticarsi prima di visualizzare. Attenzione: questo contenuto non è moderato.";
 App::$strings["Login on Homepage"] = "Login sulla homepage";
 App::$strings["Present a login box to visitors on the home page if no other content has been configured."] = "Presenta il modulo di login ai visitatori sulla homepage in mancanza di altri contenuti.";
-App::$strings["Enable context help"] = "Abilita la guida contestuale";
-App::$strings["Display contextual help for the current page when the help button is pressed."] = "Quando è premuto, il bottone della guida mostra quella relativa alla pagina corrente";
 App::$strings["Reply-to email address for system generated email."] = "Indirizzo Reply-to per mail generate dal sistema.";
 App::$strings["Sender (From) email address for system generated email."] = "Indirzzo email del mittente (From) per mail generate dal sistema.";
 App::$strings["Name of email sender for system generated email."] = "Nome del mittente per mail generate dal sistema";
@@ -2785,7 +2783,7 @@ App::$strings["%d invitation available"] = array(
 App::$strings["Find Channels"] = "Ricerca canali";
 App::$strings["Enter name or interest"] = "Scrivi un nome o un interesse";
 App::$strings["Connect/Follow"] = "Aggiungi";
-App::$strings["Examples: Robert Morgenstein, Fishing"] = "Per esempio: Mario Rossi, Pesca";
+App::$strings["Examples: Robert Walsh, Fishing"] = "Per esempio: Mario Rossi, Pesca";
 App::$strings["Random Profile"] = "Profilo casuale";
 App::$strings["Invite Friends"] = "Invita amici";
 App::$strings["Advanced example: name=fred and country=iceland"] = "Per esempio: name=mario e country=italy";

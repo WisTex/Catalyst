@@ -861,8 +861,6 @@ App::$strings["Import Public Streams"] = "Importer offentlige innholdsstrømmer"
 App::$strings["Import and allow access to public content pulled from other sites. Warning: this content is unmoderated."] = "Importer og gi tilgang til offentlig innhold trukket inn fra andre nettsteder. Advarsel: dette innholdet er ikke moderert.";
 App::$strings["Login on Homepage"] = "";
 App::$strings["Present a login box to visitors on the home page if no other content has been configured."] = "Presenter en innloggingsboks til besøkende på hjemmesiden hvis ikke noe annet innhold har blitt konfigurert.";
-App::$strings["Enable context help"] = "";
-App::$strings["Display contextual help for the current page when the help button is pressed."] = "";
 App::$strings["Directory Server URL"] = "Katalogtjener URL";
 App::$strings["Default directory server"] = "Standard katalogtjener";
 App::$strings["Proxy user"] = "Brukernavn mellomtjener";
@@ -1770,7 +1768,7 @@ App::$strings["%d invitation available"] = array(
 App::$strings["Find Channels"] = "Finn kanaler";
 App::$strings["Enter name or interest"] = "Skriv navn eller interesse";
 App::$strings["Connect/Follow"] = "Forbindelse/Følg";
-App::$strings["Examples: Robert Morgenstein, Fishing"] = "Eksempler: Ola Nordmann, fisking";
+App::$strings["Examples: Robert Walsh, Fishing"] = "Eksempler: Ola Nordmann, fisking";
 App::$strings["Random Profile"] = "Tilfeldig profil";
 App::$strings["Invite Friends"] = "Inviter venner";
 App::$strings["Advanced example: name=fred and country=iceland"] = "Avansert eksempel: navn=fred og land=island";

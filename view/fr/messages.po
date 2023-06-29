@@ -1300,7 +1300,7 @@ msgid "Connect/Follow"
 msgstr "Ajouter et suivre"
 
 #: ../../Code/Widget/Findpeople.php:29
-msgid "Examples: Robert Morgenstein, Fishing"
+msgid "Examples: Robert Walsh, Fishing"
 msgstr "Exemples: Guillaume Martin, Course à pied"
 
 #: ../../Code/Widget/Findpeople.php:30
@@ -5854,15 +5854,6 @@ msgid ""
 msgstr ""
 "Présenter une boîte de dialogue de connexion aux visiteurs sur la page "
 "d'accueil si aucun autre contenu n'a été configuré."
-
-#: ../../Code/Module/Admin/Site.php:322
-msgid "Enable context help"
-msgstr "Permettre l'aide contextuelle"
-
-#: ../../Code/Module/Admin/Site.php:322
-msgid ""
-"Display contextual help for the current page when the help button is pressed."
-msgstr "Afficher l'aide contextuel en cliquant sur le bouton aide."
 
 #: ../../Code/Module/Admin/Site.php:323
 msgid "Reply-to email address for system generated email."

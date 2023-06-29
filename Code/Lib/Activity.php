@@ -592,12 +592,19 @@ class Activity
             $atts = ((is_array($item['attach'])) ? $item['attach'] : json_decode($item['attach'], true));
             if ($atts) {
                 foreach ($atts as $att) {
+                    $name = '';
                     if (isset($att['type']) && str_contains($att['type'], 'image')) {
-                        if (!empty($arr['href'])) {
+                        if (!empty($att['href'])) {
+                            if ($att['name']) {
+                                $name = $att['name'];
+                            }
+                            if (! $name) {
+                                $name = $att['title'];
+                            }
                             $ret[] = [
                                 'type' => 'Image',
-                                'url' => $arr['href'],
-                                'name' => ($arr['name']) ?: '',
+                                'url' => $att['href'],
+                                'name' => $name,
                             ];
                         }
                     } else {
@@ -786,6 +793,7 @@ class Activity
             if ($item['location']) {
                 $activity['location']['name'] = $item['location'];
             }
+
             if ($item['lat'] || $item['lon']) {
                 $activity['location']['latitude'] = $item['lat'] ?? 0;
                 $activity['location']['longitude'] = $item['lon'] ?? 0;
@@ -935,11 +943,15 @@ class Activity
             $activity['tag'] = $t;
         }
 
-        $a = self::encode_attachment($item);
-        if ($a) {
-            $activity['attachment'] = $a;
+        if ($obj && $obj['attachment']) {
+            $activity['attachment'] = $obj['attachment'];
         }
-
+        else {
+            $a = self::encode_attachment($item);
+            if ($a) {
+                $activity['attachment'] = $a;
+            }
+        }
 
         // addressing madness
 
@@ -3127,6 +3139,14 @@ class Activity
         if (is_array($location) && array_key_exists('type', $location) && $location['type'] === 'Place') {
             if (array_key_exists('name', $location)) {
                 $s['location'] = escape_tags($location['name']);
+                // Look for something resembling latitude/longitude coordinates in the place name and set the
+                // coordinates appropriately. This technically isn't supported but is provided as a convenience
+                // to reduce support requests.
+                $latlon = '/(?<!\d)([-+]?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?)),\s*([-+]?(?:180(?:\.0+)?|(?:(?:1[0-7]\d)|(?:[1-9]?\d))(?:\.\d+)?))(?!\d)/';
+                if (preg_match($latlon,$s['location'], $matches)) {
+                    $s['lat'] = floatval($matches[1]);
+                    $s['lon'] = floatval($matches[2]);
+                }
             }
             if (array_key_exists('content', $location)) {
                 $s['location'] = html2plain(purify_html($location['content']), 256);

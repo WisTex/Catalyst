@@ -683,8 +683,6 @@ App::$strings["Maximum number of imported friends of friends"] = "Maksymalna lic
 App::$strings["Warning: higher numbers will improve the quality of friend suggestions and directory results but can exponentially increase resource usage"] = "Ostrzeżenie: wyższe liczby poprawią jakość proponowanych znajomych i wyników w katalogu, ale mogą wykładniczo zwiększyć wykorzystanie zasobów";
 App::$strings["Login on Homepage"] = "Zaloguj się na stronie głównej";
 App::$strings["Present a login box to visitors on the home page if no other content has been configured."] = "Wyświetlaj formularz logowania odwiedzającym na stronie głównej, jeśli nie skonfigurowano żadnych innych treści.";
-App::$strings["Enable context help"] = "Włącz pomoc kontekstową";
-App::$strings["Display contextual help for the current page when the help button is pressed."] = "Wyświetlanie pomocy kontekstowej dla bieżącej strony po naciśnięciu przycisku pomocy.";
 App::$strings["Reply-to email address for system generated email."] = "Zwrotny adres e-mail dla wiadomości wygenerowanych przez system.";
 App::$strings["Sender (From) email address for system generated email."] = "Adres e-mail nadawcy (Od) wiadomości e-mail wygenerowanej przez system.";
 App::$strings["Display name of email sender for system generated email."] = "Wyświetlana nazwa nadawcy wiadomości e-mail generowanej przez system.";
@@ -2213,7 +2211,7 @@ App::$strings["%d invitation available"] = [
 App::$strings["Find Channels"] = "Znajdź kanały";
 App::$strings["Enter name or interest"] = "Wpisz nazwę lub zainteresowanie";
 App::$strings["Connect/Follow"] = "Połącz/Obserwuj";
-App::$strings["Examples: Robert Morgenstein, Fishing"] = "Przykłady: Robert Morgenstein, łowienie ryb";
+App::$strings["Examples: Robert Walsh, Fishing"] = "Przykłady: Robert Walsh, łowienie ryb";
 App::$strings["Affiliated sites"] = "Powiązane witryny internetowe";
 App::$strings["Advanced example: name=fred and country=iceland"] = "Zaawansowany przykład: imię=fred i kraj=poland";
 App::$strings["photo/image"] = "zdjęcie/obraz";

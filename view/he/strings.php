@@ -861,8 +861,6 @@ App::$strings["Import Public Streams"] = "";
 App::$strings["Import and allow access to public content pulled from other sites. Warning: this content is unmoderated."] = "";
 App::$strings["Login on Homepage"] = "התחבר בעמוד בית";
 App::$strings["Present a login box to visitors on the home page if no other content has been configured."] = "";
-App::$strings["Enable context help"] = "";
-App::$strings["Display contextual help for the current page when the help button is pressed."] = "";
 App::$strings["Directory Server URL"] = "";
 App::$strings["Default directory server"] = "שרת ספרייה שגרתי";
 App::$strings["Proxy user"] = "משתמש פרוקסי";
@@ -1799,7 +1797,7 @@ App::$strings["%d invitation available"] = array(
 App::$strings["Find Channels"] = "מצא ערוצים";
 App::$strings["Enter name or interest"] = "הזן שם או עניין";
 App::$strings["Connect/Follow"] = "התחבר/עקוב";
-App::$strings["Examples: Robert Morgenstein, Fishing"] = "";
+App::$strings["Examples: Robert Walsh, Fishing"] = "";
 App::$strings["Random Profile"] = "פרופיל אקראי";
 App::$strings["Invite Friends"] = "הזמן חברים";
 App::$strings["Advanced example: name=fred and country=iceland"] = "דוגמא מתקדמת: name=פרד וגם country=איסלנד";

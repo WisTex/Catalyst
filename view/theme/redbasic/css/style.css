@@ -8,6 +8,7 @@
 
 html {
 	font-size: $font_size;
+        --bs-font-sans-serif: "Liberation Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji" !important;
 }
 
 .project-banner {
@@ -36,6 +37,10 @@ a.zrl:hover {
 	margin-right: 0.1rem;
 }
 
+.login-button {
+    margin-top: 20px;
+    margin-bottom: 5px;
+}
 .thread-separator {
 	margin-top: 0px;
 	margin-bottom: 2px;
@@ -321,51 +326,6 @@ nav {
 
 .nav-channel-select { margin-left: 8px; }
 
-/* contextual help */
-.contextual-help-content {
-	display: none;
-
-}
-
-.contextual-help-content-open {
-	display: block;
-	position: fixed;
-	top: 3.35rem;
-	left: 0px;
-	width: 100%;
-	max-height: 50%;
-	background: $comment_item_colour;
-	padding: 1rem;
-	border-bottom: #ccc 1px solid;
-	overflow: auto;
-	-moz-box-shadow: 0px 3px 3px rgba(0,0,0,0.2);
-	-webkit-box-shadow: 0px 3px 3px rgba(0,0,0,0.2);
-	box-shadow: 0px 3px 3px rgba(0,0,0,0.2);
-}
-
-.contextual-help-content dd {
-	margin-bottom: 1em;
-}
-
-.contextual-help-tool {
-	padding: 7px;
-	filter: alpha(opacity=20);
-	opacity: .5;
-}
-
-.contextual-help-tool:hover {
-	filter: alpha(opacity=50);
-	opacity: 1;
-	text-decoration: none;
-}
-
-.contextual-help-tool i {
-	color: $font_colour;
-	font-size: 1.05rem;
-}
-
-/* contextual help end */
-
 /* spinner */
 
 .spinner-wrapper {
@@ -544,6 +504,7 @@ footer {
 
 .connect-btn-wrapper, .profdm-btn-wrapper {
 	margin-bottom: 10px;
+    white-space: nowrap;
 
 }
 
@@ -1110,8 +1071,15 @@ a .drop-icons {
 }
 
 .drop-icons:hover,
+
 a .drop-icons:hover {
 	color: #FF0000;
+}
+
+
+.drop-buttons:hover,
+a .drop-buttons:hover {
+	background-color: #FF0000;
 }
 
 .lockview,
@@ -1609,6 +1577,7 @@ main.fullscreen .section-content-wrapper-np {
 	border-radius: $radius;
 }
 
+
 .rounded-top {
 	border-top-left-radius: $radius !important;
 	border-top-right-radius: $radius !important;
@@ -1776,6 +1745,9 @@ dl.bb-dl > dd > li {
 	background-image: none !important;
 }
 
+.form-group {
+    margin: 10px;
+}
 
 /* Turn checkboxes into switches */
 .form-group.checkbox > div {

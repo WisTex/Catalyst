@@ -3329,18 +3329,6 @@ msgstr ""
 "Presentar a los visitantes una casilla de identificación en la página de "
 "inicio, si no se ha configurado otro tipo de contenido."
 
-#: Code/Module/Admin/Site.php:356
-msgid "Enable context help"
-msgstr "Habilitar la ayuda contextual"
-
-#: Code/Module/Admin/Site.php:356
-msgid ""
-"Display contextual help for the current page when the help button is "
-"pressed."
-msgstr ""
-"Ver la ayuda contextual para la página actual cuando se pulse el botón de "
-"Ayuda."
-
 #: Code/Module/Admin/Site.php:357
 msgid "Reply-to email address for system generated email."
 msgstr ""
@@ -10467,7 +10455,7 @@ msgid "Connect/Follow"
 msgstr "Conectar/Seguir"
 
 #: Code/Widget/Findpeople.php:32
-msgid "Examples: Robert Morgenstein, Fishing"
+msgid "Examples: Robert Walsh, Fishing"
 msgstr "Ejemplos: José Fernández, Pesca"
 
 #: Code/Widget/Findpeople.php:37
