@@ -2,11 +2,13 @@
 
 Just some notes for myself.
 
-Branches
+## Branches
 * Catalyst - Main release branch of WisTex Catalyst
 * WisTex - Development branch for WisTex
 * Dev - Development branch of upstream (Streams repository) - NOT the dev of WisTex Catalyst
 * Release - Release branch of upstream (Streams repository) - NOT the release of WisTex Catalyst
+
+## Upstream Git
 
 This repository pulls from the upstream repository at https://codeberg.org/streams/streams to keep it in sync with Streams.
 
