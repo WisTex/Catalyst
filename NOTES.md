@@ -17,10 +17,11 @@ To do this, the local computer has to pull from upstream, and then update the or
     $ git fetch upstream
     
     # then: (like "git pull" which is fetch + merge)
-    $ git merge upstream/master master
+    $ git merge upstream/release origin/release
+    $ git merge upstream/dev origin/dev
     
     # or, better, replay your local work on top of the fetched branch
     # like a "git pull --rebase"
-    $ git rebase upstream/master
+    $ git rebase upstream/release
 
 https://stackoverflow.com/questions/3903817/pull-new-updates-from-original-github-repository-into-forked-github-repository/3903835#3903835
