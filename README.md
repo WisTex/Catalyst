@@ -1,3 +1,13 @@
+# WisTex Catalyst
+
+This is a soft fork of Streams, with additional themes, widgets, and addons included. It was created mostly to make it easier to install and update on my servers.
+
+The eventual goal is to create a stand-alone product called Catalyst which includes additional features that a forum community, small business, coach, or online course provider might find handy. It will also have a new default theme designed with this in mind.
+
+Right now this is just a playground for experimenting with the platform, and is not ready for production.
+
+## About Streams 
+
 An open source fediverse server with a long history of innovation. See [FEATURES](https://codeberg.org/streams/streams/src/branch/dev/FEATURES.md).
 
 This software is dedicated to the public domain to the extent permissable by law and is not associated with any consumer brand or product.
