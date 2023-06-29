@@ -2,7 +2,7 @@
 
 Just some notes for myself.
 
-This repository pulls from the upstrean Streams repository at https://codeberg.org/streams/streams to keep it in sync with Streams.
+This repository pulls from the upstream repository at https://codeberg.org/streams/streams to keep it in sync with Streams.
 
 To do this, the local computer has to pull from upstream, and then update the origin (Github) with the updates from the upstream.
 
