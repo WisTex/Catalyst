@@ -1,6 +1,6 @@
 # Notes
 
-Just some notes for myself.
+Just some notes for myself. This is how I keep Catalyst in sync with Streams.
 
 ## Branches
 * Catalyst - Main release branch of WisTex Catalyst
