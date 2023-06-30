@@ -25,7 +25,13 @@ To do this, the local computer has to pull from upstream, and then update the or
     # or, better, replay your local work on top of the fetched branch
     # like a "git pull --rebase"
     $ git rebase upstream/release
+    
+    # Since we will never directly modify dev and release branches git merge will work fine. 
+    # We will create a pull request if we want to merge the changes into the project.
+    
+    # Then push the changes to GitHub
+    $ git push origin
 
 https://stackoverflow.com/questions/3903817/pull-new-updates-from-original-github-repository-into-forked-github-repository/3903835#3903835
 
-And then we create a pull request to merge it into the catalsyst branch, which is our release branch.
+And then we create a pull request to merge it into the catalyst branch, which is our release branch.
