@@ -4,7 +4,7 @@ This is a personal project that is still under development and is missing most o
 
 Catalyst, also known as WisTex Catalyst, is a soft fork of Streams, an open source fediverse server with a long history of innovation. The core fediverse functionality of Catalyst comes from Streams, and this project is kept in sync with the Streams repository (one way only).
 
-I already created something similar using PHP for my personal use. I will be porting that functionality to Catalyst and eventually release it as an opne source project.
+I already created something similar using PHP for my personal use. I will be porting that functionality to Catalyst and eventually release it as an open source project.
 
 ## Current Features
 
