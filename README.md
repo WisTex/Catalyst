@@ -30,6 +30,15 @@ Right now this is just a playground for experimenting with the platform, and is 
 * Integration with other Project Management, Financial, & CRM Systems.
 * Email (IMAP) Web Client
 
+## Project
+
+We are still setting everything up, but for the time being, here is the relevant information:
+
+* Website: `coming soon`
+* Repository: https://github.com/WisTex/Catalyst
+* Documentation: `coming soon`
+* Support Forum: `coming soon`
+
 ## Credits
 
 The base fediverse functionality of Catalyst comes from Streams, which can be found at: https://codeberg.org/streams/streams
