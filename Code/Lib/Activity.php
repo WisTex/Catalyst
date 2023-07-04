@@ -3725,6 +3725,18 @@ class Activity
             );
             if ($parent_item) {
                 $parent_item = array_shift($parent_item);
+                // We've found the inReplyTo. However, if this is not
+                // the top of the conversation, look again.
+                if ($parent_item['parent_mid'] !== $item['parent_mid']) {
+                    $parent_top_item = q(
+                        "select * from item where mid = '%s' and uid = %d",
+                        dbesc($parent_item['parent_mid']),
+                        intval($channel['channel_id'])
+                    );
+                    if ($parent_top_item) {
+                        $parent_item = array_shift($parent_top_item);
+                    }
+                }
             }
             if ($parent_item && $parent_item['item_wall']) {
                 // set the owner to the owner of the parent
@@ -3777,16 +3789,11 @@ class Activity
 
                 }
                 else {
-                    if (PConfig::Get($channel['channel_id'], 'system','filter_moderate')) {
-                        $item['item_blocked'] = ITEM_MODERATED;
-                    }
-                    else {
-                        logger('rejected comment from ' . $item['author_xchan'] . ' for ' . $channel['channel_address']);
-                        logger('rejected: ' . print_r($item, true), LOGGER_DATA);
-                        // let the sender know we received their comment, but we don't permit spam here.
-                        $commentApproval?->Reject();
-                        return;
-                    }
+                    logger('rejected comment from ' . $item['author_xchan'] . ' for ' . $channel['channel_address']);
+                    logger('rejected: ' . print_r($item, true), LOGGER_DATA);
+                    // let the sender know we received their comment, but we don't permit spam here.
+                    $commentApproval?->Reject();
+                    return;
                 }
             }
             else {
